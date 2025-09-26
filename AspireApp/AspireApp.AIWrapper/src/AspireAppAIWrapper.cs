@@ -300,7 +300,7 @@ public class AspireAppAIWrapperJsonSchemas
                     productLegality = new { type = "number" },
                     isLegal = new { type = "boolean" },
                     legalExplanation = new { type = "string" },
-                    linkToLegalDocuments = new { type = "string" },
+                    linkToLegalDocuments = new { type = "array", items = new { type = "string" } },
                 },
                 required = new[] { "productLegality", "isLegal", "legalExplanation", "linkToLegalDocuments", "productUrl" },
                 additionalProperties = false
