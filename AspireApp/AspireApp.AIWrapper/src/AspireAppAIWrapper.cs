@@ -82,18 +82,18 @@ public class AspireAppAIWrapper
         using var doc = JsonDocument.Parse(respJson);
 
         // Try common shapes: choices[0].message.content (OpenAI chat-completions) or choices[0].text / content[0].text
-        string result = null;
+        string? result = null;
 
         if (doc.RootElement.TryGetProperty("choices", out var choices) && choices.ValueKind == JsonValueKind.Array && choices.GetArrayLength() > 0)
         {
             var first = choices[0];
             if (first.TryGetProperty("message", out var messageEl) && messageEl.TryGetProperty("content", out var contentEl))
             {
-                result = contentEl.GetString();
+                result = contentEl.GetString() ?? string.Empty;
             }
             else if (first.TryGetProperty("text", out var textEl))
             {
-                result = textEl.GetString();
+                result = textEl.GetString() ?? string.Empty;
             }
         }
 
@@ -136,18 +136,18 @@ public class AspireAppAIWrapper
         using var doc = JsonDocument.Parse(respJson);
 
         // Try common shapes: choices[0].message.content (OpenAI chat-completions) or choices[0].text / content[0].text
-        string result = null;
+        string? result = null;
 
         if (doc.RootElement.TryGetProperty("choices", out var choices) && choices.ValueKind == JsonValueKind.Array && choices.GetArrayLength() > 0)
         {
             var first = choices[0];
             if (first.TryGetProperty("message", out var messageEl) && messageEl.TryGetProperty("content", out var contentEl))
             {
-                result = contentEl.GetString();
+                result = contentEl.GetString() ?? string.Empty;
             }
             else if (first.TryGetProperty("text", out var textEl))
             {
-                result = textEl.GetString();
+                result = textEl.GetString() ?? string.Empty;
             }
         }
 
