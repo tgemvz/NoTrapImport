@@ -2,13 +2,16 @@
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
-    <RootNamespace>AspireAppAIWrapper</RootNamespace>
+    <RootNamespace>AspireApp_AIWrapper</RootNamespace>
     <AssemblyName>AspireAppAIWrapper</AssemblyName>
     <OutputType>Library</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="OpenAI" Version="2.5.0" />
   </ItemGroup>
 
 </Project>
