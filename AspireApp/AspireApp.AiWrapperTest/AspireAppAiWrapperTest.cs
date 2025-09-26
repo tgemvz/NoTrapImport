@@ -194,4 +194,49 @@ public sealed class AIWrapperTest
          "ProductLegality is not 'restricted' as expected.");
     }
 
+    [TestMethod]
+    public async Task GetMessage_StrucutredOutput_ClassificationWithRag()
+    {
+        if (!AssertAPIKeyIsSet()) { return; }
+
+        // Create instance (class is in global namespace)
+        var wrapper = new AspireAppAIWrapper();
+
+        ProductClassificationResponse? result = null;
+        try
+        {
+            var userMessage = "Neue Jagdwaffe mit Zielfernrohr und Laserpointer. Kaliber 7.62mm, Magazin 30 Schuss. SKU 445343003";
+
+            var ragResult = await wrapper.GetRagResult<RagResult>(userMessage);
+
+            Assert.IsTrue(ragResult is not null && !string.IsNullOrWhiteSpace(ragResult.Text), "RAG result is null or empty.");
+
+            var legalContextInfo = ragResult.Text;
+            var urltoLegalDocs = ragResult.Url != null ? ragResult.Url : "N/A";
+
+            var schemaString = AspireAppAIWrapper.GetJsonSchema<ProductClassificationResponse>();
+            var systemMessage = "You are a Productclassifier." +
+                           "Use the following legal context to determine the legality of the product: " +
+                           legalContextInfo +
+                           "Next are the url(s) to the legal documents: " +
+                           urltoLegalDocs +
+                           "If ProductLegality cannot be definitively conclusively determined, it should be assigned a value within the range [0, 1]." +
+                           "When ProductLegality is above 0.5 the product is considered legal, otherwise illegal." +
+                           "Respond with JSON only that exactly matches the schema: " +
+                           schemaString +
+                           "Do not include any text outside of the JSON object."
+                          ;
+
+            result = await wrapper.GetChatMessageSemiStructuredOutput<ProductClassificationResponse>(userMessage, systemMessage, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            Assert.IsTrue(ex is NotSupportedException, $"GetMessage threw an unexpected exception type: {ex.GetType().Name}");
+            return;
+        }
+
+        Assert.IsTrue(result.ProductLegality.HasValue && 0 == result.ProductLegality, "ProductLegality is not 'forbidden' as expected.");
+    }
+
+
 }

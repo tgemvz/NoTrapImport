@@ -7,6 +7,7 @@ public class AspireAppAIWrapper
 {
     private readonly string _apiKey;
     private readonly string _endpoint;
+    private readonly string _ragEndpoint;
 
     public AspireAppAIWrapper()
     {
@@ -17,6 +18,8 @@ public class AspireAppAIWrapper
         }
         _apiKey = apiKey;
         _endpoint = "https://api.swisscom.com/layer/swiss-ai-weeks/apertus-70b/v1/chat/completions";
+
+        _ragEndpoint = "http://localhost:8001/search/query";
     }
 
     public async Task<ProductIdentificationResponse> GetProductIdentificationAsync(ProductClassificationRequest request, CancellationToken cancellationToken)
@@ -34,13 +37,18 @@ public class AspireAppAIWrapper
 
     public async Task<ProductClassificationResponse> GetProductClassificationAsync(string request, CancellationToken cancellationToken)
     {
-        //TODO: get Relevant Text Context from DocumentRetrievalService based on "request"
-        var legalContextInfo = "Schusswaffen sind verboten, Messer sind erlaubt. Spielzeugwaffen sind bedingt erlaubt";
+
+        var relevantLegalContext = await GetRagResult<RagResult>(request);
+
+        var legalContextInfo = relevantLegalContext.Text;
+        var urltoLegalDocs = relevantLegalContext.Url != null ? relevantLegalContext.Url : "N/A";
 
         var schemaString = GetJsonSchema<ProductClassificationResponse>();
         var systemMessage = "You are a Productclassifier." +
                             "Use the following legal context to determine the legality of the product: " +
                             legalContextInfo +
+                            "Next are the url(s) to the legal documents: " +
+                            urltoLegalDocs +
                             "If ProductLegality cannot be definitively conclusively determined, it should be assigned a value within the range [0, 1]." +
                             "When ProductLegality is above 0.5 the product is considered legal, otherwise illegal." +
                             "Respond with JSON only that exactly matches the schema: " +
@@ -50,6 +58,42 @@ public class AspireAppAIWrapper
 
         var result = await GetChatMessageSemiStructuredOutput<ProductClassificationResponse>(request, systemMessage, cancellationToken);
         return result;
+    }
+
+    public async Task<T> GetRagResult<T>(string request) where T : class
+    {
+        HttpClient http;
+        HttpRequestMessage ragReq;
+        HttpResponseMessage ragResp;
+        JsonDocument ragDoc;
+
+
+        //TODO: get Relevant Text Context from DocumentRetrievalService based on "request"
+        http = new HttpClient();
+        var ragPayload = new
+        {
+            query = request,
+            top_k = 1
+        };
+        var json = JsonSerializer.Serialize(ragPayload);
+        ragReq = new HttpRequestMessage(HttpMethod.Post, _ragEndpoint)
+        {
+            Content = new StringContent(json, Encoding.UTF8, "application/json")
+        };
+        ragResp = await http.SendAsync(ragReq, HttpCompletionOption.ResponseHeadersRead);
+        ragResp.EnsureSuccessStatusCode();
+        var ragRespJson = await ragResp.Content.ReadAsStringAsync();
+        ragDoc = JsonDocument.Parse(ragRespJson);
+
+        if (ragDoc.RootElement.ValueKind == JsonValueKind.Array && ragDoc.RootElement.GetArrayLength() > 0)
+        {
+            var firstDoc = ragDoc.RootElement[0];
+
+            var maybe = JsonSerializer.Deserialize<T>(firstDoc, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (maybe != null) return maybe;
+        }
+
+        throw new InvalidOperationException($"Failed to convert LLM response to {typeof(T).Name}. Response: {ragRespJson}");
     }
 
     public async Task<string> GetChatMessage(string userMessage, CancellationToken cancellationToken = default)
