@@ -37,7 +37,7 @@ public class AspireAppAIWrapper
             ProductName = "testName",
             ProductCategory = "testCategory",
             ProductDescription = "testDescription",
-            ProductLegality = 100
+            ProductLegality = 1
         };
     }
     

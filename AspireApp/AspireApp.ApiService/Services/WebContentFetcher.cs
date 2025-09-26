@@ -2,12 +2,7 @@
 
 namespace AspireApp.ApiService.Services;
 
-public interface IWebContentFetcher
-{
-    Task<string> GetHtmlContentAsync(string url, CancellationToken cancellationToken);
-}
-
-public class WebContentFetcher : IWebContentFetcher
+public class WebContentFetcher
 {
     public async Task<string> GetHtmlContentAsync(string url, CancellationToken cancellationToken)
     {
@@ -18,11 +13,7 @@ public class WebContentFetcher : IWebContentFetcher
         });
 
         var page = await browser.NewPageAsync();
-        var response = await page.GotoAsync(url, new PageGotoOptions
-        {
-            //WaitUntil = WaitUntilState.NetworkIdle,
-            //Timeout = cancellationToken.IsCancellationRequested ? 1 : 30000 // 30 seconds default
-        });
+        var response = await page.GotoAsync(url, new PageGotoOptions { });
         
         await page.WaitForTimeoutAsync(1000);
         var finalHtmlContent = await page.ContentAsync();

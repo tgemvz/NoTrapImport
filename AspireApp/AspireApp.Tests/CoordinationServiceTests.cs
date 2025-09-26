@@ -20,7 +20,7 @@ public class CoordinationServiceTests
         var source = new CancellationTokenSource();
         var cancellationToken = source.Token;
         var fileContent = await File.ReadAllTextAsync("HtmlFiles/kugelschreiber.txt", cancellationToken);
-        var contentFetcherMock = new Mock<IWebContentFetcher>();
+        var contentFetcherMock = new Mock<WebContentFetcher>();
         var wrapper = new AspireAppAIWrapper();
         contentFetcherMock.Setup(x => x.GetHtmlContentAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(fileContent);

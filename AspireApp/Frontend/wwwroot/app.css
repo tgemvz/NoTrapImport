@@ -58,3 +58,49 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+/* Common style for the result box */
+.card-green, .card-yellow, .card-orange, .card-red {
+    border: 1px solid #ccc; /* Maintain default card border */
+    padding: 15px;
+    margin-top: 20px;
+    border-radius: 5px;
+    color: #333;
+}
+
+/* Green (Best) */
+.card-green {
+    background-color: #d4edda; /* Light Green Background */
+    border-color: #c3e6cb;
+    color: #155724; /* Dark Green Text */
+}
+
+/* Yellow */
+.card-yellow {
+    background-color: #fff3cd; /* Light Yellow Background */
+    border-color: #ffeeba;
+    color: #856404; /* Dark Yellow Text */
+}
+
+/* Orange */
+.card-orange {
+    background-color: #fcebe4; /* Light Orange Background */
+    border-color: #f5c6cb;
+    color: #721c24; /* Reddish Text */
+}
+
+/* Red (Worst) */
+.card-red {
+    background-color: #f8d7da; /* Light Red Background */
+    border-color: #f5c6cb;
+    color: #721c24; /* Dark Red Text */
+}
+
+/* Optional: Default if the legality is out of range or not set */
+.card-default {
+    background-color: #f8f9fa;
+    border: 1px solid #ccc;
+    padding: 15px;
+    margin-top: 20px;
+    border-radius: 5px;
+}

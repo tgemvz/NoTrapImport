@@ -3,13 +3,7 @@ using HtmlAgilityPack;
 
 namespace AspireApp.ApiService.Services;
 
-public interface ICoordinationService
-{
-    Task<ProductClassificationResponse> ClassifyProductByUrl(string url, CancellationToken cancellationToken);
-    Task<ProductClassificationResponse> ClassifyProductByHtmlAsync(string htmlContent, CancellationToken cancellationToken);
-}
-
-public class CoordinationService(IWebContentFetcher webContentFetcher, AspireAppAIWrapper aiWrapper) : ICoordinationService
+public class CoordinationService(WebContentFetcher webContentFetcher, AspireAppAIWrapper aiWrapper)
 {
     public async Task<ProductClassificationResponse> ClassifyProductByUrl(string url, CancellationToken cancellationToken)
     {
@@ -71,39 +65,22 @@ public class CoordinationService(IWebContentFetcher webContentFetcher, AspireApp
             return string.Empty;
         }
 
-        // Use HtmlAgilityPack to load the HTML string
         var htmlDocument = new HtmlDocument();
-        
-        // This setting helps the parser handle malformed/non-standard HTML more gracefully
         htmlDocument.OptionFixNestedTags = true;
-        
-        // Load the content into the document object
-        // Use LoadHtml for string input
         htmlDocument.LoadHtml(fullHtmlContent);
-
-        // Find the <body> node using an XPath expression
         var bodyNode = htmlDocument.DocumentNode.SelectSingleNode("//body");
 
         if (bodyNode != null)
         {
-            // 1. Get the *entire text content* of the body node, recursively
-            // This automatically strips out all HTML tags (<...>) and their contents
             string textContent = bodyNode.InnerText;
-
-            // 2. Remove all newline and carriage return characters and replace with a space
             string cleaned = textContent.Replace("\r", " ").Replace("\n", " ");
-
-            // 3. Remove all tab characters
             cleaned = cleaned.Replace("\t", " ");
 
-            // 4. Use Regex to replace two or more spaces with a single space (to "flatten" the whitespace)
+            // Use Regex to replace two or more spaces with a single space (to "flatten" the whitespace)
             cleaned = Regex.Replace(cleaned, @"\s{2,}", " ");
-            
-            // 5. Trim leading/trailing whitespace
             return cleaned.Trim();
         }
 
-        // Return empty string if the body tag couldn't be found
         return string.Empty;
     }
 }
