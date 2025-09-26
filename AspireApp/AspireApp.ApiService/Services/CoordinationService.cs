@@ -3,7 +3,13 @@ using HtmlAgilityPack;
 
 namespace AspireApp.ApiService.Services;
 
-public class CoordinationService(WebContentFetcher webContentFetcher, AspireAppAIWrapper aiWrapper)
+public interface ICoordinationService
+{
+    Task<ProductIdentificationResponse> ClassifyProductByUrl(string url, CancellationToken cancellationToken);
+    Task<ProductIdentificationResponse> ClassifyProductByHtmlAsync(string htmlContent, CancellationToken cancellationToken);
+}
+
+public class CoordinationService(IWebContentFetcher webContentFetcher, AspireAppAIWrapper aiWrapper) : ICoordinationService
 {
     public async Task<ProductClassificationResponse> ClassifyProductByUrl(string url, CancellationToken cancellationToken)
     {
@@ -15,18 +21,18 @@ public class CoordinationService(WebContentFetcher webContentFetcher, AspireAppA
         }
 
         var request = MapRequest(url, htmlContent);
-        
+
         // TODO: call classification API
         var classification = await aiWrapper.GetProductIdentificationAsync(request, cancellationToken);
-        
+
         // TODO: call rating API
         var rating = await aiWrapper.GetProductClassificationAsync("who do you think you are", cancellationToken);
-        
+
         // TODO: return actual rating to API / consumer
         return rating;
     }
-    
-    
+
+
 
     private static ProductClassificationRequest MapRequest(string url, string htmlContent)
     {
@@ -34,12 +40,12 @@ public class CoordinationService(WebContentFetcher webContentFetcher, AspireAppA
         {
             Id = Guid.NewGuid(),
             RequestDate = DateTime.Now,
-            Url = url,
+            ProductUrl = url,
             HtmlContent = htmlContent
         };
     }
 
-    public async Task<ProductClassificationResponse> ClassifyProductByHtmlAsync(string htmlContent, CancellationToken cancellationToken)
+    public async Task<ProductIdentificationResponse> ClassifyProductByHtmlAsync(string htmlContent, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(htmlContent))
         {
@@ -47,17 +53,17 @@ public class CoordinationService(WebContentFetcher webContentFetcher, AspireAppA
         }
 
         var request = MapRequest("no url", htmlContent);
-        
+
         // TODO: call classification API
         var classification = await aiWrapper.GetProductIdentificationAsync(request, cancellationToken);
-        
+
         // TODO: call rating API
         var rating = await aiWrapper.GetProductClassificationAsync("who do you think you are", cancellationToken);
-        
+
         // TODO: return actual rating to API / consumer
         return rating;
     }
-    
+
     private string ExtractBodyContent(string fullHtmlContent)
     {
         if (string.IsNullOrWhiteSpace(fullHtmlContent))
@@ -65,22 +71,39 @@ public class CoordinationService(WebContentFetcher webContentFetcher, AspireAppA
             return string.Empty;
         }
 
+        // Use HtmlAgilityPack to load the HTML string
         var htmlDocument = new HtmlDocument();
+
+        // This setting helps the parser handle malformed/non-standard HTML more gracefully
         htmlDocument.OptionFixNestedTags = true;
+
+        // Load the content into the document object
+        // Use LoadHtml for string input
         htmlDocument.LoadHtml(fullHtmlContent);
+
+        // Find the <body> node using an XPath expression
         var bodyNode = htmlDocument.DocumentNode.SelectSingleNode("//body");
 
         if (bodyNode != null)
         {
+            // 1. Get the *entire text content* of the body node, recursively
+            // This automatically strips out all HTML tags (<...>) and their contents
             string textContent = bodyNode.InnerText;
+
+            // 2. Remove all newline and carriage return characters and replace with a space
             string cleaned = textContent.Replace("\r", " ").Replace("\n", " ");
+
+            // 3. Remove all tab characters
             cleaned = cleaned.Replace("\t", " ");
 
-            // Use Regex to replace two or more spaces with a single space (to "flatten" the whitespace)
+            // 4. Use Regex to replace two or more spaces with a single space (to "flatten" the whitespace)
             cleaned = Regex.Replace(cleaned, @"\s{2,}", " ");
+
+            // 5. Trim leading/trailing whitespace
             return cleaned.Trim();
         }
 
+        // Return empty string if the body tag couldn't be found
         return string.Empty;
     }
 }
