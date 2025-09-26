@@ -5,10 +5,6 @@
 public class ProductClassificationRequest : ProductClassificationBase
 {
     /// <summary>
-    /// Request URL, for caching purposes
-    /// </summary>
-    public required string Url { get; set; }
-    /// <summary>
     /// Product site content, for classification
     /// </summary>
     public required string HtmlContent { get; init; }

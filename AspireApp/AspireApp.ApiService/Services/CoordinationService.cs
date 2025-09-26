@@ -2,8 +2,8 @@
 
 public interface ICoordinationService
 {
-    Task<ProductClassificationResponse> ClassifyProductByUrl(string url, CancellationToken cancellationToken);
-    Task<ProductClassificationResponse> ClassifyProductByHtmlAsync(string htmlContent, CancellationToken cancellationToken);
+    Task<ProductIdentificationResponse> ClassifyProductByUrl(string url, CancellationToken cancellationToken);
+    Task<ProductIdentificationResponse> ClassifyProductByHtmlAsync(string htmlContent, CancellationToken cancellationToken);
 }
 
 public class CoordinationService(IWebContentFetcher webContentFetcher, AspireAppAIWrapper aiWrapper) : ICoordinationService
@@ -17,13 +17,13 @@ public class CoordinationService(IWebContentFetcher webContentFetcher, AspireApp
         }
 
         var request = MapRequest(htmlContent);
-        
+
         // TODO: call classification API
         var classification = await aiWrapper.GetProductIdentificationAsync(request, cancellationToken);
-        
+
         // TODO: call rating API
         var rating = await aiWrapper.GetProductClassificationAsync("who do you think you are", cancellationToken);
-        
+
         // TODO: return actual rating to API / consumer
         return rating;
     }
@@ -34,14 +34,14 @@ public class CoordinationService(IWebContentFetcher webContentFetcher, AspireApp
         {
             Id = Guid.NewGuid(),
             RequestDate = DateTime.Now,
-            Url = url,
+            ProductUrl = url,
             HtmlContent = htmlContent
         };
 
         return request;
     }
 
-    public async Task<ProductClassificationResponse> ClassifyProductByHtmlAsync(string htmlContent, CancellationToken cancellationToken)
+    public async Task<ProductIdentificationResponse> ClassifyProductByHtmlAsync(string htmlContent, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(htmlContent))
         {
@@ -49,13 +49,13 @@ public class CoordinationService(IWebContentFetcher webContentFetcher, AspireApp
         }
 
         var request = MapRequest(htmlContent);
-        
+
         // TODO: call classification API
         var classification = await aiWrapper.GetProductIdentificationAsync(request, cancellationToken);
-        
+
         // TODO: call rating API
         var rating = await aiWrapper.GetProductClassificationAsync("who do you think you are", cancellationToken);
-        
+
         // TODO: return actual rating to API / consumer
         return rating;
     }

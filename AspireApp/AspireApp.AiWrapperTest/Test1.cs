@@ -47,10 +47,16 @@ public sealed class AIWrapperTest
         // Create instance (class is in global namespace)
         var wrapper = new AspireAppAIWrapper();
 
-        ProductClassificationResponse? result = null;
+        ProductIdentificationResponse? result = null;
         try
         {
-            result = await wrapper.GetChatMessageSemiStructuredOutput<ProductClassificationResponse>("");
+            var schemaString = AspireAppAIWrapper.GetJsonSchema<ProductIdentificationResponse>();
+            var systemMessage = "You are a Productidentifier." +
+                               "Respond with JSON only that exactly matches the schema: " +
+                               schemaString +
+                               "Do not include any text outside of the JSON object."
+                               ;
+            result = await wrapper.GetChatMessageSemiStructuredOutput<ProductIdentificationResponse>("", systemMessage, CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -72,7 +78,13 @@ public sealed class AIWrapperTest
         ProductClassificationBase? result = null;
         try
         {
-            result = await wrapper.GetChatMessageSemiStructuredOutput<ProductClassificationBase>("");
+            var schemaString = AspireAppAIWrapper.GetJsonSchema<ProductClassificationBase>();
+            var systemMessage = "You are a Productidentifier." +
+                               "Respond with JSON only that exactly matches the schema: " +
+                               schemaString +
+                               "Do not include any text outside of the JSON object."
+                               ;
+            result = await wrapper.GetChatMessageSemiStructuredOutput<ProductClassificationBase>("", systemMessage, CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -82,4 +94,105 @@ public sealed class AIWrapperTest
 
         Assert.IsTrue(null != result, "GetMessage returned null or whitespace.");
     }
+
+    [TestMethod]
+    public async Task GetMessage_StrucutredOutput_ClassificationForbidden()
+    {
+        if (!AssertAPIKeyIsSet()) { return; }
+
+        // Create instance (class is in global namespace)
+        var wrapper = new AspireAppAIWrapper();
+
+        ProductClassificationResponse? result = null;
+        try
+        {
+            var userMessage = "Neue Jagdwaffe mit Zielfernrohr und Laserpointer. Kaliber 7.62mm, Magazin 30 Schuss. SKU 445343003";
+            var legalContextInfo = "Schusswaffen sind verboten, Messer sind erlaubt.";
+
+            var schemaString = AspireAppAIWrapper.GetJsonSchema<ProductClassificationResponse>();
+            var systemMessage = "You are a Productclassifier." +
+                                legalContextInfo +
+                                "Respond with JSON only that exactly matches the schema: " +
+                                schemaString +
+                                "Do not include any text outside of the JSON object."
+                               ;
+            ;
+            result = await wrapper.GetChatMessageSemiStructuredOutput<ProductClassificationResponse>(userMessage, systemMessage, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            Assert.IsTrue(ex is NotSupportedException, $"GetMessage threw an unexpected exception type: {ex.GetType().Name}");
+            return;
+        }
+
+        Assert.IsTrue(result.ProductLegality.HasValue && 0 == result.ProductLegality, "ProductLegality is not 'forbidden' as expected.");
+    }
+
+    [TestMethod]
+    public async Task GetMessage_StrucutredOutput_ClassifiactionAllowed()
+    {
+        if (!AssertAPIKeyIsSet()) { return; }
+
+        // Create instance (class is in global namespace)
+        var wrapper = new AspireAppAIWrapper();
+
+        ProductClassificationResponse? result = null;
+        try
+        {
+            var userMessage = "Neues Taschenmesser mit Klinge aus rostfreiem Stahl und ergonomischem Griff. EAN 1234567890123";
+            var legalContextInfo = "Schusswaffen sind verboten, Messer sind erlaubt.";
+
+            var schemaString = AspireAppAIWrapper.GetJsonSchema<ProductClassificationResponse>();
+            var systemMessage = "You are a Productclassifier." +
+                                legalContextInfo +
+                                "Respond with JSON only that exactly matches the schema: " +
+                                schemaString +
+                                "Do not include any text outside of the JSON object."
+                               ;
+            ;
+            result = await wrapper.GetChatMessageSemiStructuredOutput<ProductClassificationResponse>(userMessage, systemMessage, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            Assert.IsTrue(ex is NotSupportedException, $"GetMessage threw an unexpected exception type: {ex.GetType().Name}");
+            return;
+        }
+
+        Assert.IsTrue(result.ProductLegality.HasValue && result.ProductLegality > 0, "ProductLegality is not 'allowed' as expected.");
+    }
+
+    [TestMethod]
+    public async Task GetMessage_StrucutredOutput_ClassifiactionMiddle()
+    {
+        if (!AssertAPIKeyIsSet()) { return; }
+
+        // Create instance (class is in global namespace)
+        var wrapper = new AspireAppAIWrapper();
+
+        ProductClassificationResponse? result = null;
+        try
+        {
+            var userMessage = "Blastmaster 4000 Gunsword mit integrierter Klingenverklängerung und Energieblaster";
+            var legalContextInfo = "Schusswaffen sind verboten, Messer sind erlaubt.";
+
+            var schemaString = AspireAppAIWrapper.GetJsonSchema<ProductClassificationResponse>();
+            var systemMessage = "You are a Productclassifier." +
+                                legalContextInfo +
+                                "Respond with JSON only that exactly matches the schema: " +
+                                schemaString +
+                                "Do not include any text outside of the JSON object."
+                               ;
+            ;
+            result = await wrapper.GetChatMessageSemiStructuredOutput<ProductClassificationResponse>(userMessage, systemMessage, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            Assert.IsTrue(ex is NotSupportedException, $"GetMessage threw an unexpected exception type: {ex.GetType().Name}");
+            return;
+        }
+
+        Assert.IsTrue(result.ProductLegality.HasValue && result.ProductLegality != 0 && result.ProductLegality != 1,
+         "ProductLegality is not 'restricted' as expected.");
+    }
+
 }

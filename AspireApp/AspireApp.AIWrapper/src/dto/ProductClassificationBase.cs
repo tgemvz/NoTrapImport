@@ -8,4 +8,9 @@ public class ProductClassificationBase
     /// Timestamp, for caching purposes
     /// </summary>
     public DateTime RequestDate { get; set; }
+    /// <summary>
+    /// Request URL, for caching purposes
+    /// </summary>
+    public required string ProductUrl { get; set; }
+
 }

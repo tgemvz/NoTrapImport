@@ -1,12 +1,10 @@
 using System.Net.Http.Headers;
 using System.Text;
-using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Web;
 
 public class AspireAppAIWrapper
 {
-
     private readonly string _apiKey;
     private readonly string _endpoint;
 
@@ -21,27 +19,34 @@ public class AspireAppAIWrapper
         _endpoint = "https://api.swisscom.com/layer/swiss-ai-weeks/apertus-70b/v1/chat/completions";
     }
 
-    public async Task<ProductClassificationResponse> GetProductIdentificationAsync(ProductClassificationRequest request, CancellationToken cancellationToken)
+    public async Task<ProductIdentificationResponse> GetProductIdentificationAsync(ProductClassificationRequest request, CancellationToken cancellationToken)
     {
-        var result = await GetChatMessageSemiStructuredOutput<ProductClassificationResponse>(request.HtmlContent, cancellationToken);
+        var schemaString = GetJsonSchema<ProductIdentificationResponse>();
+        var systemMessage = "You are a Productidentifier." +
+                           "Respond with JSON only that exactly matches the schema: " +
+                           schemaString +
+                           "Do not include any text outside of the JSON object."
+                           ;
+
+        var result = await GetChatMessageSemiStructuredOutput<ProductIdentificationResponse>(request.HtmlContent, systemMessage, cancellationToken);
         return result;
     }
 
-    public async Task<ProductClassificationResponse> GetProductClassificationAsync(string request,
-        CancellationToken cancellationToken)
+    public async Task<ProductClassificationResponse> GetProductClassificationAsync(string request, CancellationToken cancellationToken)
     {
-        // TODO: call LLM for legal classification
+        //TODO: get Relevant Text Context from DocumentRetrievalService based on "request"
+        var legalContextInfo = "Schusswaffen sind verboten, Messer sind erlaubt.";
 
-        // TODO: implementation of request with given model from above
-        return new ProductClassificationResponse()
-        {
-            Id = Guid.NewGuid(),
-            RequestDate = DateTime.Now,
-            ProductName = "testName",
-            ProductCategory = "testCategory",
-            ProductDescription = "testDescription",
-            ProductLegality = 100
-        };
+        var schemaString = GetJsonSchema<ProductClassificationResponse>();
+        var systemMessage = "You are a Productclassifier." +
+                            legalContextInfo +
+                            "Respond with JSON only that exactly matches the schema: " +
+                            schemaString +
+                            "Do not include any text outside of the JSON object."
+                           ;
+
+        var result = await GetChatMessageSemiStructuredOutput<ProductClassificationResponse>(request, systemMessage, cancellationToken);
+        return result;
     }
 
     public async Task<string> GetChatMessage(string userMessage, CancellationToken cancellationToken = default)
@@ -91,27 +96,10 @@ public class AspireAppAIWrapper
 
         return result ?? respJson;
     }
-    public async Task<T> GetChatMessageSemiStructuredOutput<T>(string userMessage, CancellationToken cancellationToken = default)
+    public async Task<T> GetChatMessageSemiStructuredOutput<T>(string userMessage, string systemMessage, CancellationToken cancellationToken = default)
     where T : class
     {
-
         var userMessageSanitized = HttpUtility.HtmlEncode(userMessage);
-
-        var schemaString = "";
-        switch (typeof(T).Name)
-        {
-            case nameof(ProductClassificationResponse):
-                schemaString = JsonSerializer.Serialize(AspireAppAIWrapperJsonSchemas.JsonSchemaProductClassification);
-                break;
-            default:
-                throw new NotSupportedException($"Type {typeof(T).Name} is not supported for semi-structured output.");
-        }
-
-        var systemPrompt = "You are a Productclassificator " +
-                           "Respond with JSON only that exactly matches the schema: " +
-                           schemaString +
-                           "Do not include any text outside of the JSON object."
-                           ;
 
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
 
@@ -120,7 +108,7 @@ public class AspireAppAIWrapper
             model = "swiss-ai/Apertus-70B",
             messages = new[]
                {
-                new { role = "system", content = systemPrompt },
+                new { role = "system", content = systemMessage },
                 new { role = "user", content = userMessageSanitized }
             },
             //max_tokens = 8192,               // increase as allowed by the provider / model
@@ -198,10 +186,50 @@ public class AspireAppAIWrapper
 
     }
 
+    public static string GetJsonSchema<T>() where T : class
+    {
+        var schemaString = "";
+        switch (typeof(T).Name)
+        {
+            case nameof(ProductIdentificationResponse):
+                schemaString = JsonSerializer.Serialize(AspireAppAIWrapperJsonSchemas.JsonSchemaProductIdentification);
+                break;
+            case nameof(ProductClassificationResponse):
+                schemaString = JsonSerializer.Serialize(AspireAppAIWrapperJsonSchemas.JsonSchemaProductClassification);
+                break;
+            default:
+                throw new NotSupportedException($"Type {typeof(T).Name} is not supported for semi-structured output.");
+        }
+
+        return schemaString;
+    }
 }
 
 public class AspireAppAIWrapperJsonSchemas
 {
+    public static object JsonSchemaProductIdentification = new
+    {
+        type = "json_schema",
+        json_schema = new
+        {
+            name = "product_identification_response",
+            strict = true,
+            schema = new
+            {
+                type = "object",
+                properties = new
+                {
+                    productName = new { typeW = "string" },
+                    productDescription = new { type = "string" },
+                    productCategory = new { type = "string" },
+                    ean = new { type = "string" },
+                },
+                required = new[] { "productName", "productDescription", "productCategory" },
+                additionalProperties = false
+            }
+        }
+    };
+
     public static object JsonSchemaProductClassification = new
     {
         type = "json_schema",
@@ -214,12 +242,12 @@ public class AspireAppAIWrapperJsonSchemas
                 type = "object",
                 properties = new
                 {
-                    productName = new { typeW = "string" },
-                    productDescription = new { type = "string" },
-                    productCategory = new { type = "string" },
-                    productLegality = new { type = "number" }
+                    productLegality = new { type = "number" },
+                    isLegal = new { type = "boolean" },
+                    legalExplanation = new { type = "string" },
+                    linkToLegalDocuments = new { type = "string" },
                 },
-                required = new[] { "productName", "productDescription", "productCategory", "productLegality" },
+                required = new[] { "productName", "productDescription", "productCategory" },
                 additionalProperties = false
             }
         }
