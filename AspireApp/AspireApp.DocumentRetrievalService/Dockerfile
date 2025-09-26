@@ -4,6 +4,9 @@ RUN apt update
 RUN apt install default-jdk -y
 RUN pip install flask python-terrier pandas
 RUN pip install flask-restx
+RUN pip install nltk spacy
+RUN python -m nltk.downloader stopwords punkt
+RUN python -m spacy download en_core_web_sm
 
 WORKDIR /app
 

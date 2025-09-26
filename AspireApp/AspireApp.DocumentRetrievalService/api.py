@@ -7,7 +7,10 @@ import os
 import glob
 import json
 import re
+import nltk
+from nltk.corpus import stopwords
 
+nltk.download("stopwords")
 
 # Initialize PyTerrier
 if not pt.java.started():
@@ -29,19 +32,26 @@ query_model = api.model('Query', {
 # Constants
 DOCUMENTS_DIR = "/app/data/docs"
 INDEX_PATH = "/app/data/index"
-MAX_WORDS_PER_CHUNK = 3000
+MAX_WORDS_PER_CHUNK = 300
 
 # Globals
 retriever = None
 
-def split_text_into_chunks(text, max_words):
+def split_text_into_chunks(words, max_words):
     """Splits text into chunks of at most max_words words."""
-    words = text.split()
     chunks = []
     for i in range(0, len(words), max_words):
         chunk = " ".join(words[i:i+max_words])
         chunks.append(chunk)
     return chunks
+
+def clean_pipeline(text):
+    languages = ["english", "german", "french", "italian"]
+    words = text.lower().split()
+    for lang in languages:
+        stops = set(stopwords.words(lang))
+        words = [w for w in words if w not in stops]
+    return words
 
 def initialize_index():
     global retriever
@@ -59,6 +69,7 @@ def initialize_index():
     for filepath in doc_files:
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read()
+            content = clean_pipeline(content)
             filename = os.path.basename(filepath)
             base_docno = os.path.splitext(filename)[0]
 
@@ -111,6 +122,9 @@ class QueryDocuments(Resource):
             return {"error": "Query is required"}, 400
 
         query_text = sanitize_query(query_text)
+        query_text = " ".join(clean_pipeline(query_text))
+
+        print("query with ", query_text)
 
         query_df = pd.DataFrame([{"qid": "1", "query": query_text}])
         results = retriever.transform(query_df).head(k)
