@@ -3,9 +3,6 @@
 [TestClass]
 public sealed class AIWrapperTest
 {
-
-
-
     [TestMethod]
     public async Task GetMessage_Returns_NonEmptyString()
     {
