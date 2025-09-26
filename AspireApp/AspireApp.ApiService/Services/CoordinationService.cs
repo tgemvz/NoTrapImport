@@ -14,13 +14,24 @@ public class CoordinationService(WebContentFetcher webContentFetcher, AspireAppA
             throw new ArgumentException($"Could not load html content from given url: {url}");
         }
 
-        var request = MapRequest(url, htmlContent);
+        var request = MapRequest(url, cleanedHtml);
 
         // TODO: call classification API
-        var classification = await aiWrapper.GetProductIdentificationAsync(request, cancellationToken);
+        var ident = await aiWrapper.GetProductIdentificationAsync(request, cancellationToken);
+        ProductIdentificationRequest pcr = new ProductIdentificationRequest
+        {
+            Id = request.Id,
+            RequestDate = request.RequestDate,
+            ProductUrl = request.ProductUrl,
+            ProductDescription = ident.ProductDescription,
+            ProductName = ident.ProductName,
+            ProductCategory = ident.ProductCategory,
+            EAN = ident.EAN
+        };
 
         // TODO: call rating API
-        var rating = await aiWrapper.GetProductClassificationAsync("who do you think you are", cancellationToken);
+
+        var rating = await aiWrapper.GetProductClassificationAsync(pcr, cancellationToken);
 
         // TODO: return actual rating to API / consumer
         return rating;
@@ -48,11 +59,15 @@ public class CoordinationService(WebContentFetcher webContentFetcher, AspireAppA
 
         var request = MapRequest("no url", htmlContent);
 
-        // TODO: call classification API
-        var classification = await aiWrapper.GetProductIdentificationAsync(request, cancellationToken);
-
-        // TODO: call rating API
-        var rating = await aiWrapper.GetProductClassificationAsync("who do you think you are", cancellationToken);
+        var ident = await aiWrapper.GetProductIdentificationAsync(request, cancellationToken);
+        ProductIdentificationRequest pcr = new ProductIdentificationRequest
+        {
+            Id = request.Id,
+            RequestDate = request.RequestDate,
+            ProductUrl = request.ProductUrl,
+            ProductDescription = ident.ProductDescription
+        };
+        var rating = await aiWrapper.GetProductClassificationAsync(pcr, cancellationToken);
 
         // TODO: return actual rating to API / consumer
         return rating;
