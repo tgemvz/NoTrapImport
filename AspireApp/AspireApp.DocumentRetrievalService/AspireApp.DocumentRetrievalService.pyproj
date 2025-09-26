@@ -37,12 +37,17 @@
   <ItemGroup>
     <Folder Include="docs\*" />
   </ItemGroup>
-  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.Web.targets" />
+  <!-- <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.Web.targets" /> -->
   <!-- Specify pre- and post-build commands in the BeforeBuild and 
        AfterBuild targets below. -->
   <Target Name="BeforeBuild">
   </Target>
   <Target Name="AfterBuild">
+  </Target>
+   <!-- Add this minimal Build target so MSBuild won't fail when Visual Studio targets are absent -->
+  <Target Name="Build">
+    <CallTarget Targets="BeforeBuild" />
+    <CallTarget Targets="AfterBuild" />
   </Target>
   <ProjectExtensions>
     <VisualStudio>
