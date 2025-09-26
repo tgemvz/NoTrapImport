@@ -8,6 +8,10 @@ builder.AddServiceDefaults();
 // Add services to the container.
 builder.Services.AddProblemDetails();
 
+builder.Services.AddControllers(); 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen(options =>
@@ -17,7 +21,9 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseRouting();
 app.UseExceptionHandler();
+app.MapControllers();
 
 if (app.Environment.IsDevelopment())
 {
@@ -27,6 +33,8 @@ if (app.Environment.IsDevelopment())
 }
 
 string[] summaries = ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"];
+Environment.SetEnvironmentVariable("SWISS_AI_PLATFORM_API_KEY", "b2ckhqYMYMBKxi9KPi7NRw5XlBAO");
+
 
 app.MapGet("/weatherforecast", () =>
 {

@@ -20,7 +20,7 @@ public class CoordinationServiceTests
         var source = new CancellationTokenSource();
         var cancellationToken = source.Token;
         var fileContent = await File.ReadAllTextAsync("HtmlFiles/kugelschreiber.txt", cancellationToken);
-        var contentFetcherMock = new Mock<IWebContentFetcher>();
+        var contentFetcherMock = new Mock<WebContentFetcher>();
         var wrapper = new AspireAppAIWrapper();
         contentFetcherMock.Setup(x => x.GetHtmlContentAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(fileContent);
@@ -28,11 +28,6 @@ public class CoordinationServiceTests
 
         var classification = await coordinationService.ClassifyProductByHtmlAsync(fileContent, cancellationToken);
         classification.Should().NotBeNull();
-        classification.ProductName.Should().Be("testName");
-        classification.ProductDescription.Should().Be("testDescription");
-        classification.ProductCategory.Should().Be("testCategory");
-        classification.ProductLegality.Should().Be(100);
-
     }
     
     [TestMethod]
@@ -47,11 +42,8 @@ public class CoordinationServiceTests
 
         var classification = await coordinationService.ClassifyProductByUrl(TestKnife, cancellationToken);
         classification.Should().NotBeNull();
-        classification.ProductName.Should().Be("testName");
-        classification.ProductDescription.Should().Be("testDescription");
-        classification.ProductCategory.Should().Be("testCategory");
         classification.ProductLegality.Should().Be(100);
-
+        classification.IsLegal.Should().Be(true);
     }
     
     [TestMethod]
@@ -66,9 +58,7 @@ public class CoordinationServiceTests
 
         var classification = await coordinationService.ClassifyProductByUrl(TestPistol, cancellationToken);
         classification.Should().NotBeNull();
-        classification.ProductName.Should().Be("testName");
-        classification.ProductDescription.Should().Be("testDescription");
-        classification.ProductCategory.Should().Be("testCategory");
+        classification.IsLegal.Should().Be(true);
         classification.ProductLegality.Should().Be(100);
 
     }

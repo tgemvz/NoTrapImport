@@ -1,16 +1,17 @@
-﻿@page "/product-classification"
+﻿@using System.Text.Json; 
+@page "/"
 @inject IHttpClientFactory HttpClientFactory
 
-<h3>Product Classification POC</h3>
+<h3>Product Classification Proof of Concept</h3>
 
 <div class="row">
     <div class="col-md-6">
-        <EditForm Model="@this" OnSubmit="OnPostAsync">
+        <EditForm Model="@this" OnSubmit="GetClassification" FormName="ProductClassificationForm">
             <div class="form-group">
-                <label for="InputUrl">URL to Classify:</label>
+                <label for="InputUrl" class="form-label">URL to Classify:</label>
                 <InputText id="InputUrl" @bind-Value="InputUrl" class="form-control" placeholder="e.g., https://example.com/product" />
             </div>
-            <button type="submit" class="btn btn-primary mt-2">Get Classification</button>
+            <button type="submit" class="btn btn-primary mt-3">Get Classification</button>
         </EditForm>
     </div>
 </div>
@@ -24,22 +25,14 @@
 
 @if (ResultModel != null)
 {
-    <hr class="mt-4" />
-    <h2>Classification Result</h2>
-    <div class="card">
+    <div class="@LegalityColorClass"> 
         <div class="card-body">
-            <h5 class="card-title">@ResultModel.ProductName</h5>
-            <p class="card-text">
-                <strong>Description:</strong> @ResultModel.ProductDescription
-            </p>
-            <p class="card-text">
-                <strong>URL Used:</strong> @InputUrl
-            </p>
-            <p class="card-text">
-                <strong>Classification:</strong>
-                <span style="font-size: 1.2em; font-weight: bold; color: @ClassificationColor;">
-                    @ResultModel.ProductClassification
-                </span>
+            <p>Is Legal: @ResultModel.IsLegal</p>
+            <p>Explanation: @ResultModel.LegalExplanation</p>
+            <p>Basis: @ResultModel.LinkToLegalDocuments</p>
+            <p>
+                Classification: 
+                <span>@ResultModel.ProductLegality</span> 
                 <small>(1 = Best / Green, 100 = Worst / Red)</small>
             </p>
         </div>
@@ -47,11 +40,6 @@
 }
 
 @code {
-    // Paste the full C# @code block here, including the ProductModel class, properties, and methods.
-
-    // ... (All C# logic and classes from the previous response go here) ...
-    // Note: You might need to add [SupplyParameterFromForm] to InputUrl if you are using the modern Blazor Web App template.
-    
     [SupplyParameterFromForm] 
     public string InputUrl { get; set; } = string.Empty;
 
@@ -60,18 +48,96 @@
     public string? ErrorMessage { get; set; }
 
     public string ClassificationColor { get; set; } = "black";
-
-    private const string ApiBaseUrl = "http://localhost:5200"; // *** CHANGE THIS ***
-
-    // Model class remains the same
+    
+    private const string ApiBaseUrl = "http://localhost:5531";
+    
     public class ProductModel
     {
-        public string ProductName { get; set; } = string.Empty;
-        public string ProductDescription { get; set; } = string.Empty;
-        public int ProductClassification { get; set; } // Value from 1 to 100
+        public Guid Id { get; set; }
+        public DateTimeOffset RequestDate { get; set; }
+        public double? ProductLegality { get; set; }
+        public bool IsLegal { get; set; }
+        public string? LegalExplanation { get; set; }
+        public string? LinkToLegalDocuments { get; set; }
     }
 
-    // OnPostAsync and CalculateClassificationColor methods go here...
-    private async Task OnPostAsync() { /* ... implementation ... */ }
-    private void CalculateClassificationColor() { /* ... implementation ... */ }
+    public string LegalityColorClass
+    {
+        get
+        {
+            if (ResultModel == null)
+            {
+                return "card-default"; // Default style if no result
+            }
+
+            // Map 1 (Best) to Green and 100 (Worst) to Red
+            return ResultModel.ProductLegality switch
+            {
+                >= 1 and <= 20 => "card-green",
+                > 20 and <= 50 => "card-yellow",
+                > 50 and <= 80 => "card-orange",
+                > 80 and <= 100 => "card-red",
+                _ => "card-default",
+            };
+        }
+    }
+    
+    private async Task GetClassification()
+    {
+        ErrorMessage = null;
+        ResultModel = null;
+        ClassificationColor = "black";
+
+        if (string.IsNullOrWhiteSpace(InputUrl))
+        {
+            ErrorMessage = "Please enter a URL.";
+            return;
+        }
+
+        try
+        {
+            var client = HttpClientFactory.CreateClient();
+            var apiUrl = $"{ApiBaseUrl}/api/Product/classification";
+        
+            var fullRequestUrl = $"{apiUrl}?url={Uri.EscapeDataString(InputUrl)}";
+            var response = await client.GetAsync(fullRequestUrl);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonString = await response.Content.ReadAsStringAsync();
+                    ResultModel = JsonSerializer.Deserialize<ProductModel>(jsonString, 
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    
+                    CalculateClassificationColor();
+            }
+            else
+            {
+                ErrorMessage = $"Error calling API: {response.StatusCode}. Content: {await response.Content.ReadAsStringAsync()}";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"An unexpected error occurred: {ex.Message}";
+        }
+    }
+
+    private void CalculateClassificationColor()
+    {
+        if (ResultModel is { ProductLegality: not null })
+        {
+            double value = ResultModel.ProductLegality.Value;
+            // Clamp value to 1-100 to handle out-of-range results gracefully
+            double clampedValue = Math.Clamp(value, 1, 100);
+
+            // HSL Hue calculation: 1 (best) maps to 120 (Green), 100 (worst) maps to 0 (Red)
+            // Normalize: (1-100) -> (0.0-1.0)
+            double normalized = (clampedValue - 1) / 99.0; 
+            
+            // Invert the scale and map to the Hue range (0-120)
+            int hue = (int)((1.0 - normalized) * 120.0); 
+
+            // Set the color string for CSS using HSL (Hue, Saturation, Lightness)
+            ClassificationColor = $"hsl({hue}, 70%, 50%)";
+        }
+    }
 }

@@ -3,13 +3,7 @@ using HtmlAgilityPack;
 
 namespace AspireApp.ApiService.Services;
 
-public interface ICoordinationService
-{
-    Task<ProductIdentificationResponse> ClassifyProductByUrl(string url, CancellationToken cancellationToken);
-    Task<ProductIdentificationResponse> ClassifyProductByHtmlAsync(string htmlContent, CancellationToken cancellationToken);
-}
-
-public class CoordinationService(IWebContentFetcher webContentFetcher, AspireAppAIWrapper aiWrapper) : ICoordinationService
+public class CoordinationService(WebContentFetcher webContentFetcher, AspireAppAIWrapper aiWrapper)
 {
     public async Task<ProductClassificationResponse> ClassifyProductByUrl(string url, CancellationToken cancellationToken)
     {
@@ -45,7 +39,7 @@ public class CoordinationService(IWebContentFetcher webContentFetcher, AspireApp
         };
     }
 
-    public async Task<ProductIdentificationResponse> ClassifyProductByHtmlAsync(string htmlContent, CancellationToken cancellationToken)
+    public async Task<ProductClassificationResponse> ClassifyProductByHtmlAsync(string htmlContent, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(htmlContent))
         {

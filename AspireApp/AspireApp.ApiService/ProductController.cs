@@ -5,17 +5,18 @@ namespace AspireApp.ApiService;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ProductController(ICoordinationService coordinationService) : ControllerBase
+public class ProductController : ControllerBase
 {
-    [HttpGet("classification/{*url}")] 
-    public async Task<ActionResult<string>> GetClassification(string url, CancellationToken cancellationToken)
+    [HttpGet("classification")] 
+    public async Task<ActionResult<string>> GetClassification([FromQuery] string url, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(url))
         {
             return BadRequest("The URL path parameter is missing.");
         }
 
-        var classification = await coordinationService.ClassifyProductByUrl(url, cancellationToken);
+        var service = new CoordinationService(new WebContentFetcher(), new AspireAppAIWrapper());
+        var classification = await service.ClassifyProductByUrl(url, cancellationToken);
 
         return Ok(classification);
     }
