@@ -11,6 +11,6 @@ public class ProductClassificationResponse : ProductClassificationBase
     public double? ProductLegality { get; set; }
     public bool IsLegal { get; set; }
     public string? LegalExplanation { get; set; }
-    public string? LinkToLegalDocuments { get; set; } // could be an array?
+    public string[]? LinkToLegalDocuments { get; set; }
 }
 

@@ -32,20 +32,22 @@ public class AspireAppAIWrapper
                            ;
 
         var result = await GetChatMessageSemiStructuredOutput<ProductIdentificationResponse>(request.HtmlContent, systemMessage, cancellationToken);
+        result.ProductUrl = request.ProductUrl;
         return result;
     }
 
-    public async Task<ProductClassificationResponse> GetProductClassificationAsync(string request, CancellationToken cancellationToken)
+    public async Task<ProductClassificationResponse> GetProductClassificationAsync(ProductIdentificationRequest request, CancellationToken cancellationToken)
     {
+        var requestDesc = request.ProductDescription ?? "";
 
-        var relevantLegalContext = await GetRagResult<RagResult>(request);
+        var relevantLegalContext = await GetRagResult<RagResult>(requestDesc); // use product description as query for RAG
 
         var legalContextInfo = relevantLegalContext.Text;
         var urltoLegalDocs = relevantLegalContext.Url != null ? relevantLegalContext.Url : "N/A";
 
         var schemaString = GetJsonSchema<ProductClassificationResponse>();
         var systemMessage = "You are a Productclassifier." +
-                            "Use the following legal context to determine the legality of the product: " +
+                            "Use the following legal context to determine the legality of the product that the users provides: " +
                             legalContextInfo +
                             "Next are the url(s) to the legal documents: " +
                             urltoLegalDocs +
@@ -56,7 +58,11 @@ public class AspireAppAIWrapper
                             "Do not include any text outside of the JSON object."
                            ;
 
-        var result = await GetChatMessageSemiStructuredOutput<ProductClassificationResponse>(request, systemMessage, cancellationToken);
+        var result = await GetChatMessageSemiStructuredOutput<ProductClassificationResponse>(requestDesc, systemMessage, cancellationToken);
+        result.Id = request.Id;
+        result.ProductUrl = request.ProductUrl;
+        result.LinkToLegalDocuments = [urltoLegalDocs];
+
         return result;
     }
 
