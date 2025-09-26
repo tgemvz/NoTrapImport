@@ -13,6 +13,11 @@
 
 ### Vectorization
 
+- DB initialization, if no fitting file is present
+
+#### Limitations
+- No duplicate check on db initialization
+
 ## Future Work
 
 In the short timeframe, not every idea and process was realistic to be realised. In this section, we want to show some further work that could be done, to improve on the existing solution prototype.
