@@ -56,8 +56,8 @@ public class CoordinationService(WebContentFetcher webContentFetcher, AspireAppA
         {
             throw new ArgumentException($"Content is empty.");
         }
-
-        var request = MapRequest("no url", htmlContent);
+        var cleanedHtml = ExtractBodyContent(htmlContent);
+        var request = MapRequest("no url", cleanedHtml);
 
         var ident = await aiWrapper.GetProductIdentificationAsync(request, cancellationToken);
         ProductIdentificationRequest pcr = new ProductIdentificationRequest
