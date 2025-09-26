@@ -4,6 +4,8 @@
 
 ## Process
 
+- EAN API not free. We extract data ourselves. We could cache the decision by EAN.
+
 ### Data Extraction
 
 #### Limitations
@@ -21,6 +23,9 @@
 ## Future Work
 
 In the short timeframe, not every idea and process was realistic to be realised. In this section, we want to show some further work that could be done, to improve on the existing solution prototype.
+
+### Classification Enrichment
+- Extracted product data can be enriched with web searches to optimally define the product in question
 
 ### Full Scan
 Currently the check will be accomplished by extracting text data. Further improvements could be achieved by also evaluating visual data like images or video.
