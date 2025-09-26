@@ -4,6 +4,8 @@
 public sealed class AIWrapperTest
 {
 
+    const string LEGAL_CONTEXT_INFO = "Schusswaffen sind verboten, Messer sind erlaubt. Spielzeugwaffen sind bedingt erlaubt";
+
     static bool AssertAPIKeyIsSet()
     {
         // Skip integration test if API key is not provided
@@ -107,11 +109,10 @@ public sealed class AIWrapperTest
         try
         {
             var userMessage = "Neue Jagdwaffe mit Zielfernrohr und Laserpointer. Kaliber 7.62mm, Magazin 30 Schuss. SKU 445343003";
-            var legalContextInfo = "Schusswaffen sind verboten, Messer sind erlaubt.";
 
             var schemaString = AspireAppAIWrapper.GetJsonSchema<ProductClassificationResponse>();
             var systemMessage = "You are a Productclassifier." +
-                                legalContextInfo +
+                                LEGAL_CONTEXT_INFO +
                                 "Respond with JSON only that exactly matches the schema: " +
                                 schemaString +
                                 "Do not include any text outside of the JSON object."
@@ -140,11 +141,10 @@ public sealed class AIWrapperTest
         try
         {
             var userMessage = "Neues Taschenmesser mit Klinge aus rostfreiem Stahl und ergonomischem Griff. EAN 1234567890123";
-            var legalContextInfo = "Schusswaffen sind verboten, Messer sind erlaubt.";
 
             var schemaString = AspireAppAIWrapper.GetJsonSchema<ProductClassificationResponse>();
             var systemMessage = "You are a Productclassifier." +
-                                legalContextInfo +
+                                LEGAL_CONTEXT_INFO +
                                 "Respond with JSON only that exactly matches the schema: " +
                                 schemaString +
                                 "Do not include any text outside of the JSON object."
@@ -172,12 +172,11 @@ public sealed class AIWrapperTest
         ProductClassificationResponse? result = null;
         try
         {
-            var userMessage = "Blastmaster 4000 Gunsword mit integrierter Klingenverlängerung und Energieblaster. Ein Spielzeug für Cosplayer Kinder und Erwachsene. SKU 9988776655";
-            var legalContextInfo = "Schusswaffen sind verboten, Messer sind erlaubt.";
+            var userMessage = "Blastmaster 4000 Gunsword mit integrierter Klingenverlängerung und Energieblaster. Achtung darf nicht in die Hände von Kleinkindern gelangen, da die Gefahr besteht sich ein Auge auszuschissen! Ein Spielzeug für Cosplayer. SKU 9988776655";
 
             var schemaString = AspireAppAIWrapper.GetJsonSchema<ProductClassificationResponse>();
             var systemMessage = "You are a Productclassifier." +
-                                legalContextInfo +
+                                LEGAL_CONTEXT_INFO +
                                 "Respond with JSON only that exactly matches the schema: " +
                                 schemaString +
                                 "Do not include any text outside of the JSON object."

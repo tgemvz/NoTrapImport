@@ -35,11 +35,14 @@ public class AspireAppAIWrapper
     public async Task<ProductClassificationResponse> GetProductClassificationAsync(string request, CancellationToken cancellationToken)
     {
         //TODO: get Relevant Text Context from DocumentRetrievalService based on "request"
-        var legalContextInfo = "Schusswaffen sind verboten, Messer sind erlaubt.";
+        var legalContextInfo = "Schusswaffen sind verboten, Messer sind erlaubt. Spielzeugwaffen sind bedingt erlaubt";
 
         var schemaString = GetJsonSchema<ProductClassificationResponse>();
         var systemMessage = "You are a Productclassifier." +
+                            "Use the following legal context to determine the legality of the product: " +
                             legalContextInfo +
+                            "If ProductLegality cannot be definitively conclusively determined, it should be assigned a value within the range [0, 1]." +
+                            "When ProductLegality is above 0.5 the product is considered legal, otherwise illegal." +
                             "Respond with JSON only that exactly matches the schema: " +
                             schemaString +
                             "Do not include any text outside of the JSON object."
