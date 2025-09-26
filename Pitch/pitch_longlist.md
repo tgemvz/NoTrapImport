@@ -39,4 +39,46 @@ img[alt~="center"] {
 
 ![h:600 center](sequence.drawio.svg)
 
+<!-- 
+- That's were we come in. 
+- Input 
+  - as easy as possible: WebExtension vs WebApp
+  - Sanitation (HTML, strip down)
+- API
+  - currently URLs
+  - extendable
+- Extraction
+  - Use LLM with sanitized input
+  - Get structure output: product description, category, product identification number
+- Legality Check
+  - (Curated) FEDLEX catalogue as vectors (Swiss Legal Guidelines)
+  - Query relevant documents
+  - RAG approach: Use LLM to provide confidence regarding product legality in context of the retrieved documents
+-->
+
 ---
+<style scoped>
+section{
+  font-size:10px; 
+}
+</style>
+![h:500 center](illegal_packages.png)
+
+<center>
+  <a href="https://www.srf.ch/news/schweiz/onlinehandel-besuch-beim-zoll-wie-sich-kunden-verbotene-waren-liefern-lassen">SRF: Besuch beim Zoll: Wie sich Kunden verbotene Waren liefern lassen</a>
+</center>
+
+<!--
+- over 600 products in one week! (679)
+-->
+
+---
+
+<!-- fit -->
+![h:400](Copilot_20250926_181137.png) ![h:400](sequence.drawio.svg)
+
+<center>
+
+# Q & A
+
+</center>
