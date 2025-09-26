@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Web;
@@ -228,10 +229,26 @@ public class AspireAppAIWrapper
                 var extracted = JsonSerializer.Deserialize<T>(jsonOnly, options);
                 if (extracted != null) return extracted;
             }
-            catch (JsonException ex)
+            catch (Exception)
             {
-                throw new InvalidOperationException($"Failed to deserialize extracted JSON to {typeof(T).Name}: {ex.Message}\nExtracted JSON: {jsonOnly}\nFull response: {payloadStr}", ex);
+                // fall through to final error
             }
+        }
+
+        switch (typeof(T).Name)
+        {
+            case nameof(ProductIdentificationResponse):
+                var res1 = Activator.CreateInstance<T>();
+                (res1 as ProductIdentificationResponse)!.ProductDescription = payloadStr;
+                return res1;
+
+            case nameof(ProductClassificationResponse):
+                var res2 = Activator.CreateInstance<T>();
+                (res2 as ProductClassificationResponse)!.LegalExplanation = payloadStr;
+                return res2;
+
+            default:
+                throw new NotSupportedException($"Type {typeof(T).Name} is not supported for semi-structured output.");
         }
 
         // 3) If still not deserializable, provide helpful error.
@@ -272,13 +289,12 @@ public class AspireAppAIWrapperJsonSchemas
                 type = "object",
                 properties = new
                 {
-                    productUrl = new { typeW = "string" },
                     productName = new { typeW = "string" },
                     productDescription = new { type = "string" },
                     productCategory = new { type = "string" },
                     ean = new { type = "string" },
                 },
-                required = new[] { "productName", "productDescription", "productCategory", "ean", "productUrl" },
+                required = new[] { "productName", "productDescription", "productCategory", "ean" },
                 additionalProperties = false
             }
         }
@@ -296,13 +312,12 @@ public class AspireAppAIWrapperJsonSchemas
                 type = "object",
                 properties = new
                 {
-                    productUrl = new { typeW = "string" },
                     productLegality = new { type = "number" },
                     isLegal = new { type = "boolean" },
                     legalExplanation = new { type = "string" },
                     linkToLegalDocuments = new { type = "array", items = new { type = "string" } },
                 },
-                required = new[] { "productLegality", "isLegal", "legalExplanation", "linkToLegalDocuments", "productUrl" },
+                required = new[] { "productLegality", "isLegal", "legalExplanation", "linkToLegalDocuments" },
                 additionalProperties = false
             }
         }
