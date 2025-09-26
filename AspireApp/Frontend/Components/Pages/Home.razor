@@ -27,8 +27,9 @@
 {
     <div class="@LegalityColorClass"> 
         <div class="card-body">
-            <p>ProductName: @ResultModel.ProductName</p>
-            <p>Description: @ResultModel.ProductDescription</p>
+            <p>Is Legal: @ResultModel.IsLegal</p>
+            <p>Explanation: @ResultModel.LegalExplanation</p>
+            <p>Basis: @ResultModel.LinkToLegalDocuments</p>
             <p>
                 Classification: 
                 <span>@ResultModel.ProductLegality</span> 
@@ -54,10 +55,10 @@
     {
         public Guid Id { get; set; }
         public DateTimeOffset RequestDate { get; set; }
-        public string ProductName { get; set; } = string.Empty;
-        public string ProductDescription { get; set; } = string.Empty;
-        public string ProductCategory { get; set; } = string.Empty;
-        public double ProductLegality { get; set; } // Value from 1 to 100
+        public double? ProductLegality { get; set; }
+        public bool IsLegal { get; set; }
+        public string? LegalExplanation { get; set; }
+        public string? LinkToLegalDocuments { get; set; }
     }
 
     public string LegalityColorClass
@@ -122,9 +123,9 @@
 
     private void CalculateClassificationColor()
     {
-        if (ResultModel != null)
+        if (ResultModel is { ProductLegality: not null })
         {
-            double value = ResultModel.ProductLegality;
+            double value = ResultModel.ProductLegality.Value;
             // Clamp value to 1-100 to handle out-of-range results gracefully
             double clampedValue = Math.Clamp(value, 1, 100);
 
