@@ -6,6 +6,9 @@
 
 ### Data Extraction
 
+#### Limitations
+- structured output. Currently via "system message".
+
 ### Querying/Prompting
 
 ### Vectorization
