@@ -1,12 +1,15 @@
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Web;
 
 public class AspireAppAIWrapper
 {
 
     private readonly string _apiKey;
     private readonly string _endpoint;
+
     public AspireAppAIWrapper()
     {
         var apiKey = Environment.GetEnvironmentVariable("SWISS_AI_PLATFORM_API_KEY");
@@ -18,17 +21,17 @@ public class AspireAppAIWrapper
         _endpoint = "https://api.swisscom.com/layer/swiss-ai-weeks/apertus-70b/v1/chat/completions";
     }
 
-    public async Task<string> GetProductIdentificationAsync(ProductClassificationRequest request, CancellationToken cancellationToken)
+    public async Task<ProductClassificationResponse> GetProductIdentificationAsync(ProductClassificationRequest request, CancellationToken cancellationToken)
     {
-        // TODO: call LLM for product identification
-        return string.Empty;
+        var result = await GetChatMessageSemiStructuredOutput<ProductClassificationResponse>(request.HtmlContent, cancellationToken);
+        return result;
     }
 
     public async Task<ProductClassificationResponse> GetProductClassificationAsync(string request,
         CancellationToken cancellationToken)
     {
         // TODO: call LLM for legal classification
-        
+
         // TODO: implementation of request with given model from above
         return new ProductClassificationResponse()
         {
@@ -40,8 +43,8 @@ public class AspireAppAIWrapper
             ProductLegality = 100
         };
     }
-    
-    public async Task<string> GetChatMessage(string userMessage)
+
+    public async Task<string> GetChatMessage(string userMessage, CancellationToken cancellationToken = default)
     {
         using var http = new HttpClient();
 
@@ -88,52 +91,28 @@ public class AspireAppAIWrapper
 
         return result ?? respJson;
     }
-    public async Task<string> GetChatMessageSemiStructuredOutput(string userMessage)
+    public async Task<T> GetChatMessageSemiStructuredOutput<T>(string userMessage, CancellationToken cancellationToken = default)
+    where T : class
     {
-        var jsonSchema = new
-        {
-            type = "json_schema",
-            json_schema = new
-            {
-                name = "math_response",
-                strict = true,
-                schema = new
-                {
-                    type = "object",
-                    properties = new
-                    {
-                        steps = new
-                        {
-                            type = "array",
-                            items = new
-                            {
-                                type = "object",
-                                properties = new
-                                {
-                                    explanation = new { type = "string" },
-                                    output = new { type = "string" }
-                                },
-                                required = new[] { "explanation", "output" },
-                                additionalProperties = false
-                            }
-                        },
-                        final_answer = new { type = "string" }
-                    },
-                    required = new[] { "steps", "final_answer" },
-                    additionalProperties = false
-                }
-            }
-        };
 
-        //"You are a JSON generator. Respond with JSON only that exactly matches the schema: " +
-        //                                  JsonSerializer.Serialize(jsonSchema) +
-        var schemaString = JsonSerializer.Serialize(jsonSchema);
-        var systemPrompt = "You are a helpful math tutor. " +
-                           "Break down your reasoning into clear steps, and provide a final answer. " +
+        var userMessageSanitized = HttpUtility.HtmlEncode(userMessage);
+
+        var schemaString = "";
+        switch (typeof(T).Name)
+        {
+            case nameof(ProductClassificationResponse):
+                schemaString = JsonSerializer.Serialize(AspireAppAIWrapperJsonSchemas.JsonSchemaProductClassification);
+                break;
+            default:
+                throw new NotSupportedException($"Type {typeof(T).Name} is not supported for semi-structured output.");
+        }
+
+        var systemPrompt = "You are a Productclassificator " +
                            "Respond with JSON only that exactly matches the schema: " +
                            schemaString +
                            "Do not include any text outside of the JSON object."
                            ;
+
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
 
         var payload = new
@@ -142,9 +121,9 @@ public class AspireAppAIWrapper
             messages = new[]
                {
                 new { role = "system", content = systemPrompt },
-                new { role = "user", content = userMessage }
+                new { role = "user", content = userMessageSanitized }
             },
-            max_tokens = 8192,               // increase as allowed by the provider / model
+            //max_tokens = 8192,               // increase as allowed by the provider / model
             temperature = 0.0,               // lower=deterministic, higher=randomness
             top_p = 1.0,                     // nucleus sampling
         };
@@ -181,7 +160,68 @@ public class AspireAppAIWrapper
             }
         }
 
-        return result ?? respJson;
+        var payloadStr = result ?? respJson;
+
+        // Attempt to deserialize the payload into the requested class T.
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+        // 1) Try direct deserialization.
+        try
+        {
+            var direct = JsonSerializer.Deserialize<T>(payloadStr, options);
+            if (direct != null) return direct;
+        }
+        catch (JsonException)
+        {
+            // fall through to try extracting JSON substring
+        }
+
+        // 2) If the model returned extra text, attempt to extract the first JSON object substring.
+        int start = payloadStr.IndexOf('{');
+        int end = payloadStr.LastIndexOf('}');
+        if (start >= 0 && end > start)
+        {
+            var jsonOnly = payloadStr.Substring(start, end - start + 1);
+            try
+            {
+                var extracted = JsonSerializer.Deserialize<T>(jsonOnly, options);
+                if (extracted != null) return extracted;
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException($"Failed to deserialize extracted JSON to {typeof(T).Name}: {ex.Message}\nExtracted JSON: {jsonOnly}\nFull response: {payloadStr}", ex);
+            }
+        }
+
+        // 3) If still not deserializable, provide helpful error.
+        throw new InvalidOperationException($"Failed to convert LLM response to {typeof(T).Name}. Response: {payloadStr}");
+
     }
 
+}
+
+public class AspireAppAIWrapperJsonSchemas
+{
+    public static object JsonSchemaProductClassification = new
+    {
+        type = "json_schema",
+        json_schema = new
+        {
+            name = "product_classification_response",
+            strict = true,
+            schema = new
+            {
+                type = "object",
+                properties = new
+                {
+                    productName = new { typeW = "string" },
+                    productDescription = new { type = "string" },
+                    productCategory = new { type = "string" },
+                    productLegality = new { type = "number" }
+                },
+                required = new[] { "productName", "productDescription", "productCategory", "productLegality" },
+                additionalProperties = false
+            }
+        }
+    };
 }

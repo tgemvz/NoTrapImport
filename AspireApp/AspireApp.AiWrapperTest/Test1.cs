@@ -20,7 +20,7 @@ public sealed class AIWrapperTest
     [TestMethod]
     public async Task GetMessage_Returns_NonEmptyString()
     {
-        if (AssertAPIKeyIsSet()) { return; }
+        if (!AssertAPIKeyIsSet()) { return; }
 
         // Create instance (class is in global namespace)
         var wrapper = new AspireAppAIWrapper();
@@ -42,15 +42,15 @@ public sealed class AIWrapperTest
     [TestMethod]
     public async Task GetMessage_StrucutredOutput()
     {
-        if (AssertAPIKeyIsSet()) { return; }
+        if (!AssertAPIKeyIsSet()) { return; }
 
         // Create instance (class is in global namespace)
         var wrapper = new AspireAppAIWrapper();
 
-        string result;
+        ProductClassificationResponse? result = null;
         try
         {
-            result = await wrapper.GetChatMessageSemiStructuredOutput("solve 8x + 31 = 2");
+            result = await wrapper.GetChatMessageSemiStructuredOutput<ProductClassificationResponse>("");
         }
         catch (Exception ex)
         {
@@ -58,6 +58,28 @@ public sealed class AIWrapperTest
             return;
         }
 
-        Assert.IsFalse(string.IsNullOrWhiteSpace(result), "GetMessage returned null or whitespace.");
+        Assert.IsTrue(null != result, "GetMessage returned null or whitespace.");
+    }
+
+    [TestMethod]
+    public async Task GetMessage_StrucutredOutputOfUnsupportedClass()
+    {
+        if (!AssertAPIKeyIsSet()) { return; }
+
+        // Create instance (class is in global namespace)
+        var wrapper = new AspireAppAIWrapper();
+
+        ProductClassificationBase? result = null;
+        try
+        {
+            result = await wrapper.GetChatMessageSemiStructuredOutput<ProductClassificationBase>("");
+        }
+        catch (Exception ex)
+        {
+            Assert.IsTrue(ex is NotSupportedException, $"GetMessage threw an unexpected exception type: {ex.GetType().Name}");
+            return;
+        }
+
+        Assert.IsTrue(null != result, "GetMessage returned null or whitespace.");
     }
 }
