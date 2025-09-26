@@ -1,4 +1,7 @@
-﻿namespace AspireApp.ApiService.Services;
+﻿using System.Text.RegularExpressions;
+using HtmlAgilityPack;
+
+namespace AspireApp.ApiService.Services;
 
 public interface ICoordinationService
 {
@@ -11,12 +14,13 @@ public class CoordinationService(IWebContentFetcher webContentFetcher, AspireApp
     public async Task<ProductClassificationResponse> ClassifyProductByUrl(string url, CancellationToken cancellationToken)
     {
         var htmlContent = await webContentFetcher.GetHtmlContentAsync(url, cancellationToken);
-        if (string.IsNullOrWhiteSpace(htmlContent))
+        var cleanedHtml = ExtractBodyContent(htmlContent);
+        if (string.IsNullOrWhiteSpace(cleanedHtml))
         {
             throw new ArgumentException($"Could not load html content from given url: {url}");
         }
 
-        var request = MapRequest(htmlContent);
+        var request = MapRequest(url, htmlContent);
         
         // TODO: call classification API
         var classification = await aiWrapper.GetProductIdentificationAsync(request, cancellationToken);
@@ -27,18 +31,18 @@ public class CoordinationService(IWebContentFetcher webContentFetcher, AspireApp
         // TODO: return actual rating to API / consumer
         return rating;
     }
+    
+    
 
-    private static ProductClassificationRequest MapRequest(string htmlContent, string url = "www.testing.com")
+    private static ProductClassificationRequest MapRequest(string url, string htmlContent)
     {
-        var request = new ProductClassificationRequest()
+        return new ProductClassificationRequest()
         {
             Id = Guid.NewGuid(),
             RequestDate = DateTime.Now,
             Url = url,
             HtmlContent = htmlContent
         };
-
-        return request;
     }
 
     public async Task<ProductClassificationResponse> ClassifyProductByHtmlAsync(string htmlContent, CancellationToken cancellationToken)
@@ -48,7 +52,7 @@ public class CoordinationService(IWebContentFetcher webContentFetcher, AspireApp
             throw new ArgumentException($"Content is empty.");
         }
 
-        var request = MapRequest(htmlContent);
+        var request = MapRequest("no url", htmlContent);
         
         // TODO: call classification API
         var classification = await aiWrapper.GetProductIdentificationAsync(request, cancellationToken);
@@ -58,5 +62,48 @@ public class CoordinationService(IWebContentFetcher webContentFetcher, AspireApp
         
         // TODO: return actual rating to API / consumer
         return rating;
+    }
+    
+    private string ExtractBodyContent(string fullHtmlContent)
+    {
+        if (string.IsNullOrWhiteSpace(fullHtmlContent))
+        {
+            return string.Empty;
+        }
+
+        // Use HtmlAgilityPack to load the HTML string
+        var htmlDocument = new HtmlDocument();
+        
+        // This setting helps the parser handle malformed/non-standard HTML more gracefully
+        htmlDocument.OptionFixNestedTags = true;
+        
+        // Load the content into the document object
+        // Use LoadHtml for string input
+        htmlDocument.LoadHtml(fullHtmlContent);
+
+        // Find the <body> node using an XPath expression
+        var bodyNode = htmlDocument.DocumentNode.SelectSingleNode("//body");
+
+        if (bodyNode != null)
+        {
+            // 1. Get the *entire text content* of the body node, recursively
+            // This automatically strips out all HTML tags (<...>) and their contents
+            string textContent = bodyNode.InnerText;
+
+            // 2. Remove all newline and carriage return characters and replace with a space
+            string cleaned = textContent.Replace("\r", " ").Replace("\n", " ");
+
+            // 3. Remove all tab characters
+            cleaned = cleaned.Replace("\t", " ");
+
+            // 4. Use Regex to replace two or more spaces with a single space (to "flatten" the whitespace)
+            cleaned = Regex.Replace(cleaned, @"\s{2,}", " ");
+            
+            // 5. Trim leading/trailing whitespace
+            return cleaned.Trim();
+        }
+
+        // Return empty string if the body tag couldn't be found
+        return string.Empty;
     }
 }
