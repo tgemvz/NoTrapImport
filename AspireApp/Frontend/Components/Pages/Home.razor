@@ -1,0 +1,77 @@
+﻿@page "/product-classification"
+@inject IHttpClientFactory HttpClientFactory
+
+<h3>Product Classification POC</h3>
+
+<div class="row">
+    <div class="col-md-6">
+        <EditForm Model="@this" OnSubmit="OnPostAsync">
+            <div class="form-group">
+                <label for="InputUrl">URL to Classify:</label>
+                <InputText id="InputUrl" @bind-Value="InputUrl" class="form-control" placeholder="e.g., https://example.com/product" />
+            </div>
+            <button type="submit" class="btn btn-primary mt-2">Get Classification</button>
+        </EditForm>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger mt-3" role="alert">
+        <strong>Error:</strong> @ErrorMessage
+    </div>
+}
+
+@if (ResultModel != null)
+{
+    <hr class="mt-4" />
+    <h2>Classification Result</h2>
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">@ResultModel.ProductName</h5>
+            <p class="card-text">
+                <strong>Description:</strong> @ResultModel.ProductDescription
+            </p>
+            <p class="card-text">
+                <strong>URL Used:</strong> @InputUrl
+            </p>
+            <p class="card-text">
+                <strong>Classification:</strong>
+                <span style="font-size: 1.2em; font-weight: bold; color: @ClassificationColor;">
+                    @ResultModel.ProductClassification
+                </span>
+                <small>(1 = Best / Green, 100 = Worst / Red)</small>
+            </p>
+        </div>
+    </div>
+}
+
+@code {
+    // Paste the full C# @code block here, including the ProductModel class, properties, and methods.
+
+    // ... (All C# logic and classes from the previous response go here) ...
+    // Note: You might need to add [SupplyParameterFromForm] to InputUrl if you are using the modern Blazor Web App template.
+    
+    [SupplyParameterFromForm] 
+    public string InputUrl { get; set; } = string.Empty;
+
+    public ProductModel? ResultModel { get; set; }
+
+    public string? ErrorMessage { get; set; }
+
+    public string ClassificationColor { get; set; } = "black";
+
+    private const string ApiBaseUrl = "http://localhost:5200"; // *** CHANGE THIS ***
+
+    // Model class remains the same
+    public class ProductModel
+    {
+        public string ProductName { get; set; } = string.Empty;
+        public string ProductDescription { get; set; } = string.Empty;
+        public int ProductClassification { get; set; } // Value from 1 to 100
+    }
+
+    // OnPostAsync and CalculateClassificationColor methods go here...
+    private async Task OnPostAsync() { /* ... implementation ... */ }
+    private void CalculateClassificationColor() { /* ... implementation ... */ }
+}
