@@ -18,6 +18,29 @@ public class AspireAppAIWrapper
         _endpoint = "https://api.swisscom.com/layer/swiss-ai-weeks/apertus-70b/v1/chat/completions";
     }
 
+    public async Task<string> GetProductIdentificationAsync(ProductClassificationRequest request, CancellationToken cancellationToken)
+    {
+        // TODO: call LLM for product identification
+        return string.Empty;
+    }
+
+    public async Task<ProductClassificationResponse> GetProductClassificationAsync(string request,
+        CancellationToken cancellationToken)
+    {
+        // TODO: call LLM for legal classification
+        
+        // TODO: implementation of request with given model from above
+        return new ProductClassificationResponse()
+        {
+            Id = Guid.NewGuid(),
+            RequestDate = DateTime.Now,
+            ProductName = "testName",
+            ProductCategory = "testCategory",
+            ProductDescription = "testDescription",
+            ProductLegality = 100
+        };
+    }
+    
     public async Task<string> GetChatMessage(string userMessage)
     {
         using var http = new HttpClient();
