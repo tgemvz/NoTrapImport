@@ -219,12 +219,13 @@ public class AspireAppAIWrapperJsonSchemas
                 type = "object",
                 properties = new
                 {
+                    productUrl = new { typeW = "string" },
                     productName = new { typeW = "string" },
                     productDescription = new { type = "string" },
                     productCategory = new { type = "string" },
                     ean = new { type = "string" },
                 },
-                required = new[] { "productName", "productDescription", "productCategory" },
+                required = new[] { "productName", "productDescription", "productCategory", "ean", "productUrl" },
                 additionalProperties = false
             }
         }
@@ -242,12 +243,13 @@ public class AspireAppAIWrapperJsonSchemas
                 type = "object",
                 properties = new
                 {
+                    productUrl = new { typeW = "string" },
                     productLegality = new { type = "number" },
                     isLegal = new { type = "boolean" },
                     legalExplanation = new { type = "string" },
                     linkToLegalDocuments = new { type = "string" },
                 },
-                required = new[] { "productName", "productDescription", "productCategory" },
+                required = new[] { "productLegality", "isLegal", "legalExplanation", "linkToLegalDocuments", "productUrl" },
                 additionalProperties = false
             }
         }

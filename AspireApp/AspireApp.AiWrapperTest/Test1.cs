@@ -172,7 +172,7 @@ public sealed class AIWrapperTest
         ProductClassificationResponse? result = null;
         try
         {
-            var userMessage = "Blastmaster 4000 Gunsword mit integrierter Klingenverklängerung und Energieblaster";
+            var userMessage = "Blastmaster 4000 Gunsword mit integrierter Klingenverlängerung und Energieblaster. Ein Spielzeug für Cosplayer Kinder und Erwachsene. SKU 9988776655";
             var legalContextInfo = "Schusswaffen sind verboten, Messer sind erlaubt.";
 
             var schemaString = AspireAppAIWrapper.GetJsonSchema<ProductClassificationResponse>();
