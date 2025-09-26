@@ -294,8 +294,8 @@ public class AspireAppAIWrapperJsonSchemas
                     productCategory = new { type = "string" },
                     ean = new { type = "string" },
                 },
-                required = new[] { "productName", "productDescription", "productCategory", "ean" },
-                additionalProperties = false
+                // required = new[] { "productName", "productDescription", "productCategory", "ean" },
+                // additionalProperties = false
             }
         }
     };
@@ -317,8 +317,8 @@ public class AspireAppAIWrapperJsonSchemas
                     legalExplanation = new { type = "string" },
                     linkToLegalDocuments = new { type = "array", items = new { type = "string" } },
                 },
-                required = new[] { "productLegality", "isLegal", "legalExplanation", "linkToLegalDocuments" },
-                additionalProperties = false
+                // required = new[] { "productLegality", "isLegal", "legalExplanation", "linkToLegalDocuments" },
+                // additionalProperties = false
             }
         }
     };
