@@ -18,7 +18,6 @@
 
 - Structure
   1. Hook: Problem/Use Case (Curious, pain, vision)
-  > Excitedly waiting for your new Blaster Master 4000! Only to find customs to reject the package. Worst case, they're even sending you a letter with legal actions.
   1. Solution + Demo
       1. Show, don't tell
       1. How becomes what (use analogy)

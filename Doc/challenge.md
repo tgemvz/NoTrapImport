@@ -1,5 +1,9 @@
 # Don’t walk straight into the trap (Gov3)
 
+# Open
+
+- How to handle multiple products on website
+
 ## Abstract
 
 ## Process
@@ -19,6 +23,13 @@
 
 #### Limitations
 - No duplicate check on db initialization
+
+## Technical Challenges
+- Apertus
+    - No structured output
+    - No dotnet wrapper (OpenAI Client didn't work)
+- RAG
+    - Chunking: Can't feed whole documents to LLM
 
 ## Future Work
 
