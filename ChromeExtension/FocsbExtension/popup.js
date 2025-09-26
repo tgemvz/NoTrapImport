@@ -5,11 +5,13 @@ async function classifyProduct(html, url) {
   try {
     const response = await fetch(fullRequestUrl, {
       method: "POST",
-      body: JSON.stringify({html: html}),
+      body: JSON.stringify({ html: html }),
       headers: {
         "Content-Type": "application/json",
       }
-    });
+    }).catch((err) => {
+      return err;
+    })
 
     if (response.ok) {
       const jsonString = await response.text();
@@ -34,10 +36,13 @@ async function handleClassification(html, url) {
 
 function setLoading(set) {
   const htmlElement = document.getElementById("loader");
-  if(set) {
-    htmlElement.classList.add('hidden');
-  } else {
+  const button = document.getElementById("sendHtml");
+  if (set) {
     htmlElement.classList.remove('hidden');
+    button.disabled = true;
+  } else {
+    htmlElement.classList.add('hidden');
+    button.disabled = false;
   }
 }
 
@@ -45,16 +50,15 @@ async function init() {
   document.getElementById("sendHtml").addEventListener("click", async () => {
     // classifyProduct("<html><body>Test</body></html>", "sdf")
     // return
+
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-
-
     chrome.scripting.executeScript(
       {
         target: { tabId: tab.id },
-        func: () => ({ url: document.location.href, html: document.documentElement.outerHTML }),
+        func: () => ({ url: document.location.href, html: document.documentElement.outerText }),
       },
       (results) => {
+
         const html = results[0].result.html
         const url = results[0].result.url;
         handleClassification(html, url);
