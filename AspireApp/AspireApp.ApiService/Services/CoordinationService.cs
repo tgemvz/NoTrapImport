@@ -48,14 +48,14 @@ public class CoordinationService(WebContentFetcher webContentFetcher, AspireAppA
         };
     }
 
-    public async Task<ProductClassificationResponse> ClassifyProductByHtmlAsync(string htmlContent, CancellationToken cancellationToken)
+    public async Task<ProductClassificationResponse> ClassifyProductByHtmlAsync(string htmlContent, string productUrl, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(htmlContent))
         {
             throw new ArgumentException($"Content is empty.");
         }
         var cleanedHtml = ExtractBodyContent(htmlContent);
-        var request = MapRequest("no url", cleanedHtml);
+        var request = MapRequest(productUrl, cleanedHtml);
 
         var ident = await aiWrapper.GetProductIdentificationAsync(request, cancellationToken);
         ProductIdentificationRequest pcr = new()

@@ -30,7 +30,7 @@ public class ProductController : ControllerBase
         }
 
         var service = new CoordinationService(new WebContentFetcher(), new AspireAppAIWrapper());
-        var classification = await service.ClassifyProductByHtmlAsync(param.html, cancellationToken);
+        var classification = await service.ClassifyProductByHtmlAsync(param.html, "https://gunlex.ch/shop/revolver/taurus-raging-hunter-454-8-zoll/", cancellationToken);
 
         return Ok(classification);
     }
