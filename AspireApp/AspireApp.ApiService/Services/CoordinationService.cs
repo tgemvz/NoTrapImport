@@ -37,8 +37,6 @@ public class CoordinationService(WebContentFetcher webContentFetcher, AspireAppA
         return rating;
     }
 
-
-
     private static ProductClassificationRequest MapRequest(string url, string htmlContent)
     {
         return new ProductClassificationRequest()
@@ -60,13 +58,17 @@ public class CoordinationService(WebContentFetcher webContentFetcher, AspireAppA
         var request = MapRequest("no url", cleanedHtml);
 
         var ident = await aiWrapper.GetProductIdentificationAsync(request, cancellationToken);
-        ProductIdentificationRequest pcr = new ProductIdentificationRequest
+        ProductIdentificationRequest pcr = new()
         {
             Id = request.Id,
             RequestDate = request.RequestDate,
             ProductUrl = request.ProductUrl,
-            ProductDescription = ident.ProductDescription
+            ProductDescription = ident.ProductDescription,
+            ProductName = ident.ProductName,
+            ProductCategory = ident.ProductCategory,
+            EAN = ident.EAN
         };
+
         var rating = await aiWrapper.GetProductClassificationAsync(pcr, cancellationToken);
 
         // TODO: return actual rating to API / consumer

@@ -1,5 +1,4 @@
 using System.Net.Http.Headers;
-using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Web;
@@ -19,17 +18,40 @@ public class AspireAppAIWrapper
         }
         _apiKey = apiKey;
         _endpoint = "https://api.swisscom.com/layer/swiss-ai-weeks/apertus-70b/v1/chat/completions";
-
         _ragEndpoint = "http://localhost:8001/search/query";
+    }
+
+
+    public static string GetPromptForJsonSchema(string schemaString)
+    {
+        var prompt =
+$$"""
+Respond with JSON only that exactly matches the schema:
+{{schemaString}}
+Do not include any text outside of the JSON object.
+Do not make up additional JSON properties 
+""";
+        return prompt;
+    }
+    public static string GetPromptForClassification(string legalContextInfo)
+    {
+        var prompt =
+$$"""
+To determine if a product may be legally imported into Switerzland use following legal context:
+{{legalContextInfo}}
+Do not make up any legal context.
+If the legal context does not provide sufficient information to determine the legality of the product,
+respond with a value within the range [0, 1} and explain that in LegalExplanation.
+When ProductLegality is above 0.5 the product is considered legal, otherwise illegal
+""";
+        return prompt;
     }
 
     public async Task<ProductIdentificationResponse> GetProductIdentificationAsync(ProductClassificationRequest request, CancellationToken cancellationToken)
     {
         var schemaString = GetJsonSchema<ProductIdentificationResponse>();
-        var systemMessage = "You are a Productidentifier." +
-                           "Respond with JSON only that exactly matches the schema: " +
-                           schemaString +
-                           "Do not include any text outside of the JSON object."
+        var systemMessage = "You are a Productidentifier that responds in JSON format only" +
+                            GetPromptForJsonSchema(schemaString)
                            ;
 
         var result = await GetChatMessageSemiStructuredOutput<ProductIdentificationResponse>(request.HtmlContent, systemMessage, cancellationToken);
@@ -47,16 +69,9 @@ public class AspireAppAIWrapper
         var urltoLegalDocs = relevantLegalContext.Url != null ? relevantLegalContext.Url : "N/A";
 
         var schemaString = GetJsonSchema<ProductClassificationResponse>();
-        var systemMessage = "You are a Productclassifier." +
-                            "Use the following legal context to determine the legality of the product that the users provides: " +
-                            legalContextInfo +
-                            "Next are the url(s) to the legal documents: " +
-                            urltoLegalDocs +
-                            "If ProductLegality cannot be definitively conclusively determined, it should be assigned a value within the range [0, 1]." +
-                            "When ProductLegality is above 0.5 the product is considered legal, otherwise illegal." +
-                            "Respond with JSON only that exactly matches the schema: " +
-                            schemaString +
-                            "Do not include any text outside of the JSON object."
+        var systemMessage = "You are a Productclassifier that responds in JSON format only" +
+                            GetPromptForClassification(legalContextInfo) +
+                            GetPromptForJsonSchema(schemaString)
                            ;
 
         var result = await GetChatMessageSemiStructuredOutput<ProductClassificationResponse>(requestDesc, systemMessage, cancellationToken);
@@ -167,7 +182,7 @@ public class AspireAppAIWrapper
             },
             //max_tokens = 8192,               // increase as allowed by the provider / model
             temperature = 0.0,               // lower=deterministic, higher=randomness
-            top_p = 1.0,                     // nucleus sampling
+            top_p = 0.5,                     // nucleus sampling
         };
 
         var json = JsonSerializer.Serialize(payload);
@@ -227,7 +242,10 @@ public class AspireAppAIWrapper
             try
             {
                 var extracted = JsonSerializer.Deserialize<T>(jsonOnly, options);
-                if (extracted != null) return extracted;
+                if (extracted != null)
+                {
+                    return extracted;
+                }
             }
             catch (Exception)
             {
@@ -253,7 +271,6 @@ public class AspireAppAIWrapper
 
         // 3) If still not deserializable, provide helpful error.
         throw new InvalidOperationException($"Failed to convert LLM response to {typeof(T).Name}. Response: {payloadStr}");
-
     }
 
     public static string GetJsonSchema<T>() where T : class
