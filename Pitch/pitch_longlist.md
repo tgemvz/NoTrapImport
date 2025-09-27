@@ -37,28 +37,11 @@ img[alt~="center"] {
 
 ---
 
+![h:500 center](../Doc/order_process_checked.png)
+
+---
+
 ![h:500 center](../Doc/example_usage.png)
-
---- 
-
-![h:600 center](sequence.drawio.svg)
-
-<!-- 
-- That's were we come in. 
-- Input 
-  - as easy as possible: WebExtension vs WebApp
-  - Sanitation (HTML, strip down)
-- API
-  - currently URLs
-  - extendable
-- Extraction
-  - Use LLM with sanitized input
-  - Get structure output: product description, category, product identification number
-- Legality Check
-  - (Curated) FEDLEX catalogue as vectors (Swiss Legal Guidelines)
-  - Query relevant documents
-  - RAG approach: Use LLM to provide confidence regarding product legality in context of the retrieved documents
--->
 
 ---
 <style scoped>
@@ -77,11 +60,27 @@ section{
 -->
 
 ---
-
-![h:500 center](../Doc/order_process_checked.png)
-
 <center>
 
 # Q & A
 
 </center>
+
+![h:500 center](sequence.drawio.svg)
+
+<!-- 
+- That's were we come in. 
+- Input 
+  - as easy as possible: WebExtension vs WebApp
+  - Sanitation (HTML, strip down)
+- API
+  - currently URLs
+  - extendable
+- Extraction
+  - Use LLM with sanitized input
+  - Get structure output: product description, category, product identification number
+- Legality Check
+  - (Curated) FEDLEX catalogue as vectors (Swiss Legal Guidelines)
+  - Query relevant documents
+  - RAG approach: Use LLM to provide confidence regarding product legality in context of the retrieved documents
+-->
