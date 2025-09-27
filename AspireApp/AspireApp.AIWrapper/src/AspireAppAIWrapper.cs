@@ -30,10 +30,26 @@ public class AspireAppAIWrapper
     {
         var prompt =
 $$"""
-Respond in JSON format that matches the schema:
+You are a strict JSON-only responder. Produce exactly one top-level JSON value that VALIDATES against the provided schema and nothing else.
+
+Requirements:
+1) Output only valid JSON. Do not include any text, explanation, metadata, markdown, or code fences before or after the JSON.
+2) Do not add, remove, or rename properties. Only include properties defined in the schema.
+3) Respect JSON types exactly:
+   - string -> JSON string (use quotes)
+   - number/integer -> numeric literal (no quotes)
+   - boolean -> true or false (no quotes)
+   - array -> JSON array (use [] if empty)
+   - object -> JSON object (include nested properties or set them to null)
+4) If a property value cannot be determined, set it to null. Do not create extra explanatory fields.
+5) Arrays must be present as arrays (even if empty). Objects must be present as objects (or null if unknown and allowed).
+6) No comments, no trailing commas, and ensure the JSON parses with a strict JSON parser (e.g. JSON.parse).
+7) Keep the output minimal and syntactically correct so it can be deserialized directly into the target type.
+
+Schema:
 {{schemaString}}
-Do not include any text outside of the JSON object.
-Do not make up additional JSON properties 
+
+Now return only the JSON that conforms to the schema.
 """;
         return prompt;
     }
@@ -41,15 +57,25 @@ Do not make up additional JSON properties
     {
         var prompt =
 $$"""
-To determine if a product may be legally imported into Switerzland use following legal context(s):
-{{string.Join("--------", legalContextInfo.Select(c => "Source: " + c.Item1 + " Text: " + c.Item2))}}
---------
-Do not make up any legal context.
-The field ProductLegality within the range [0, 1} defines the confidentiality with 0 meaning for sure illegal and 1 means for sure legal.
-If the legal context does not provide sufficient information to determine the legality of the product,
-respond with a value within the range [0, 1} for ProductLegality and explain that in LegalExplanation.
-Give the urls of the relevant context in the field LinkToLegalDocuments
-When ProductLegality is above or equal 0.5 the product is considered legal, otherwise illegal
+You are an expert assistant for Swiss import law. Use ONLY the legal context provided below and nothing else to evaluate whether the product may be legally imported into Switzerland.
+
+Strict output rules (will be combined with a JSON schema prompt — output MUST be valid JSON that matches that schema and nothing else):
+1) Output only a single JSON object. Do NOT include any prose, commentary, headings, or markdown outside the JSON.
+2) Do NOT add, remove, or rename properties. Follow property names and types exactly.
+3) productLegality: return a number between 0.0 and 1.0 (inclusive) representing the likelihood the product is legal to import.
+   - 1.0 = clearly legal under the provided context
+   - 0.0 = clearly illegal under the provided context
+   - If uncertain, choose an appropriate probability and justify briefly in legalExplanation.
+4) isLegal: MUST be true if productLegality >= 0.5, otherwise false. Ensure boolean is consistent with productLegality.
+5) legalExplanation: give a concise explanation (1–3 short sentences) that cites ONLY information from the provided legal context. If the context is insufficient, state "Insufficient information" and list the specific missing facts needed to decide.
+6) linkToLegalDocuments: include only URLs present in the provided legal context or RAG result. Do NOT fabricate or modify URLs. If none are available, return an empty array [].
+7) If a property value cannot be determined, set it to null (except linkToLegalDocuments which should be [] if none).
+8) No extra properties, no comments, no trailing commas, and ensure strict JSON parseability.
+
+Legal context (use exactly as provided; do NOT invent facts):
+{{legalContextInfo}}
+
+Decision rule: productLegality >= 0.5 => considered legal; productLegality < 0.5 => considered illegal.
 """;
         return prompt;
     }
