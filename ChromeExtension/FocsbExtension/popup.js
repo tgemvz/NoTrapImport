@@ -30,7 +30,7 @@ async function classifyProduct(html, url) {
 async function handleClassification(html, url) {
   setLoading(true)
   const classification = await classifyProduct(html);
-  document.getElementById("result").innerText = classification;
+  document.getElementById("result").innerText = JSON.stringify(classification)
   setLoading(false)
 }
 
