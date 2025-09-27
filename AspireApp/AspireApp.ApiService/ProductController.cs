@@ -1,5 +1,4 @@
 ﻿using AspireApp.ApiService.Services;
-using Microsoft.AspNetCore.Html;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AspireApp.ApiService;
@@ -8,7 +7,7 @@ namespace AspireApp.ApiService;
 [Route("api/[controller]")]
 public class ProductController : ControllerBase
 {
-    [HttpGet("classification")] 
+    [HttpGet("classification")]
     public async Task<ActionResult<string>> GetClassification([FromQuery] string url, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(url))
