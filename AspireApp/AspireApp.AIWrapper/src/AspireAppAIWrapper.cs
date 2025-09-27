@@ -42,7 +42,7 @@ To determine if a product may be legally imported into Switerzland use following
 Do not make up any legal context.
 If the legal context does not provide sufficient information to determine the legality of the product,
 respond with a value within the range [0, 1} and explain that in LegalExplanation.
-When ProductLegality is above 0.5 the product is considered legal, otherwise illegal
+When ProductLegality is above or equal 0.5 the product is considered legal, otherwise illegal
 """;
         return prompt;
     }
