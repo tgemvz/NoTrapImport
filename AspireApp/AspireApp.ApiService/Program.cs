@@ -62,7 +62,7 @@ try
     }
 
     app.MapDefaultEndpoints();
-    logger.Info("------------------------Applicaion Starting------------------------");
+    logger.Info("------------------------Application Starting------------------------");
     app.Run();
 }
 catch (Exception ex)
