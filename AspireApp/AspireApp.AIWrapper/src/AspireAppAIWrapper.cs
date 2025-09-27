@@ -146,7 +146,7 @@ Decision rule: productLegality >= 0.5 => considered legal; productLegality < 0.5
             var maybe = JsonSerializer.Deserialize<T>(ragDoc, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if (maybe != null)
             {
-                _logger.LogDebug($"RAG result: {firstDoc}");
+                _logger.LogDebug($"RAG result: {ragDoc}");
                 return maybe;
             }
         }
