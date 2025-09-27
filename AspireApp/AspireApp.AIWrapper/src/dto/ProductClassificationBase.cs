@@ -11,6 +11,6 @@ public class ProductClassificationBase
     /// <summary>
     /// Request URL, for caching purposes
     /// </summary>
-    public required string ProductUrl { get; set; }
+    public string ProductUrl { get; set; }
 
 }

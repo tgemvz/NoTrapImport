@@ -30,10 +30,13 @@ public class ProductController : ControllerBase
         }
 
         var service = new CoordinationService(new WebContentFetcher(), new AspireAppAIWrapper());
-        var classification = await service.ClassifyProductByHtmlAsync(param.html, cancellationToken);
+        var classification = await service.ClassifyProductByHtmlAsync(param.html, param.url, cancellationToken);
 
         return Ok(classification);
     }
 
-    public class GetClassificationFromHtmlParam { public string html { get; set; } }
+    public class GetClassificationFromHtmlParam { 
+        public string html { get; set; }
+        public string url { get; set; }
+    }
 }
