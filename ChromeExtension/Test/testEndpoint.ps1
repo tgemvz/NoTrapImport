@@ -1,0 +1,1 @@
+curl -X POST http://localhost:5055/receive-html -H "Content-Type: text/plain" --data "<html><body>Hello from .NET</body></html>"

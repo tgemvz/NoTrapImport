@@ -1,0 +1,6 @@
+- infos kann eingeschränkt sein
+- Gesetzes Triagieren > HTML to markdown > LLM "Docling"
+- Vector DB Chunken (2000 tokens)
+- Quelle merken- 
+- illegale Bereiche, Kategorien: Waffen, Medis, Chemikalien, Substanzen, 
+- (Laserpointer low prio)
