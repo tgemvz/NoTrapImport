@@ -89,8 +89,6 @@ When ProductLegality is above 0.5 the product is considered legal, otherwise ill
         HttpResponseMessage ragResp;
         JsonDocument ragDoc;
 
-
-        //TODO: get Relevant Text Context from DocumentRetrievalService based on "request"
         http = new HttpClient();
         var ragPayload = new
         {
@@ -118,55 +116,8 @@ When ProductLegality is above 0.5 the product is considered legal, otherwise ill
         throw new InvalidOperationException($"Failed to convert LLM response to {typeof(T).Name}. Response: {ragRespJson}");
     }
 
-    public async Task<string> GetChatMessage(string userMessage, CancellationToken cancellationToken = default)
-    {
-        using var http = new HttpClient();
-
-        var payload = new
-        {
-            model = "swiss-ai/Apertus-70B",
-            messages = new[]
-            {
-                new { role = "user", content = userMessage }
-            }
-        };
-
-        var json = JsonSerializer.Serialize(payload);
-        using var req = new HttpRequestMessage(HttpMethod.Post, _endpoint)
-        {
-            Content = new StringContent(json, Encoding.UTF8, "application/json")
-        };
-
-        // Common auth header patterns: Bearer or Api-Key. Adjust if your platform requires a different header.
-        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
-
-        using var resp = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead);
-
-        resp.EnsureSuccessStatusCode();
-
-        var respJson = await resp.Content.ReadAsStringAsync();
-        using var doc = JsonDocument.Parse(respJson);
-
-        // Try common shapes: choices[0].message.content (OpenAI chat-completions) or choices[0].text / content[0].text
-        string? result = null;
-
-        if (doc.RootElement.TryGetProperty("choices", out var choices) && choices.ValueKind == JsonValueKind.Array && choices.GetArrayLength() > 0)
-        {
-            var first = choices[0];
-            if (first.TryGetProperty("message", out var messageEl) && messageEl.TryGetProperty("content", out var contentEl))
-            {
-                result = contentEl.GetString() ?? string.Empty;
-            }
-            else if (first.TryGetProperty("text", out var textEl))
-            {
-                result = textEl.GetString() ?? string.Empty;
-            }
-        }
-
-        return result ?? respJson;
-    }
     public async Task<T> GetChatMessageSemiStructuredOutput<T>(string userMessage, string systemMessage, CancellationToken cancellationToken = default)
-    where T : class
+      where T : class
     {
         var userMessageSanitized = HttpUtility.HtmlEncode(userMessage);
 
@@ -272,7 +223,6 @@ When ProductLegality is above 0.5 the product is considered legal, otherwise ill
         // 3) If still not deserializable, provide helpful error.
         throw new InvalidOperationException($"Failed to convert LLM response to {typeof(T).Name}. Response: {payloadStr}");
     }
-
     public static string GetJsonSchema<T>() where T : class
     {
         var schemaString = "";
@@ -290,6 +240,54 @@ When ProductLegality is above 0.5 the product is considered legal, otherwise ill
 
         return schemaString;
     }
+    public async Task<string> GetChatMessage(string userMessage, CancellationToken cancellationToken = default)
+    {
+        using var http = new HttpClient();
+
+        var payload = new
+        {
+            model = "swiss-ai/Apertus-70B",
+            messages = new[]
+            {
+                new { role = "user", content = userMessage }
+            }
+        };
+
+        var json = JsonSerializer.Serialize(payload);
+        using var req = new HttpRequestMessage(HttpMethod.Post, _endpoint)
+        {
+            Content = new StringContent(json, Encoding.UTF8, "application/json")
+        };
+
+        // Common auth header patterns: Bearer or Api-Key. Adjust if your platform requires a different header.
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+
+        using var resp = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead);
+
+        resp.EnsureSuccessStatusCode();
+
+        var respJson = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(respJson);
+
+        // Try common shapes: choices[0].message.content (OpenAI chat-completions) or choices[0].text / content[0].text
+        string? result = null;
+
+        if (doc.RootElement.TryGetProperty("choices", out var choices) && choices.ValueKind == JsonValueKind.Array && choices.GetArrayLength() > 0)
+        {
+            var first = choices[0];
+            if (first.TryGetProperty("message", out var messageEl) && messageEl.TryGetProperty("content", out var contentEl))
+            {
+                result = contentEl.GetString() ?? string.Empty;
+            }
+            else if (first.TryGetProperty("text", out var textEl))
+            {
+                result = textEl.GetString() ?? string.Empty;
+            }
+        }
+
+        return result ?? respJson;
+    }
+
 }
 
 public class AspireAppAIWrapperJsonSchemas
