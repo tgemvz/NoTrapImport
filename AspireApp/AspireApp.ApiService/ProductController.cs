@@ -1,4 +1,5 @@
 ﻿using AspireApp.ApiService.Services;
+using Microsoft.AspNetCore.Html;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AspireApp.ApiService;
@@ -20,4 +21,20 @@ public class ProductController : ControllerBase
 
         return Ok(classification);
     }
+
+    [HttpPost("classification/html")]
+    public async Task<ActionResult<string>> GetClassificationFromHtml([FromBody] GetClassificationFromHtmlParam param, CancellationToken cancellationToken)
+    {
+        if (param == null || string.IsNullOrWhiteSpace(param.html))
+        {
+            return BadRequest("The HTML path parameter is missing.");
+        }
+
+        var service = new CoordinationService(new WebContentFetcher(), new AspireAppAIWrapper());
+        var classification = await service.ClassifyProductByHtmlAsync(param.html, cancellationToken);
+
+        return Ok(classification);
+    }
+
+    public class GetClassificationFromHtmlParam { public string html { get; set; } }
 }

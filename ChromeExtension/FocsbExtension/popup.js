@@ -1,17 +1,68 @@
-document.getElementById("sendHtml").addEventListener("click", async () => {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  chrome.scripting.executeScript(
-    {
-      target: { tabId: tab.id },
-      func: () => document.documentElement.outerHTML,
-    },
-    (results) => {
-      const html = results[0].result;
-      fetch("http://localhost:5055/receive-html", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html }),
-      });
+async function classifyProduct(html, url) {
+  const apiBaseUrl = "https://localhost:7444";
+  const fullRequestUrl = `${apiBaseUrl}/api/Product/classification/html`;
+
+  try {
+    const response = await fetch(fullRequestUrl, {
+      method: "POST",
+      body: JSON.stringify({html: html}),
+      headers: {
+        "Content-Type": "application/json",
+      }
+    });
+
+    if (response.ok) {
+      const jsonString = await response.text();
+      const resultModel = JSON.parse(jsonString);
+      return resultModel;
+    } else {
+      const errorContent = await response.text();
+      const errorMessage = `Error calling API: ${response.status}. Content: ${errorContent}`;
+      return errorMessage;
     }
-  );
+  } catch (err) {
+    return err;
+  }
+}
+
+async function handleClassification(html, url) {
+  setLoading(true)
+  const classification = await classifyProduct(html);
+  document.getElementById("result").innerText = classification;
+  setLoading(false)
+}
+
+function setLoading(set) {
+  const htmlElement = document.getElementById("loader");
+  if(set) {
+    htmlElement.classList.add('hidden');
+  } else {
+    htmlElement.classList.remove('hidden');
+  }
+}
+
+async function init() {
+  document.getElementById("sendHtml").addEventListener("click", async () => {
+    // classifyProduct("<html><body>Test</body></html>", "sdf")
+    // return
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+
+
+    chrome.scripting.executeScript(
+      {
+        target: { tabId: tab.id },
+        func: () => ({ url: document.location.href, html: document.documentElement.outerHTML }),
+      },
+      (results) => {
+        const html = results[0].result.html
+        const url = results[0].result.url;
+        handleClassification(html, url);
+      }
+    );
+  });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  init();
 });
