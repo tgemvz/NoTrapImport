@@ -1,6 +1,8 @@
 # Don’t walk straight into the trap (Gov3)
 
-# Technical Challenges
+## Technical Challenges
+- Input Data
+    - Most shops prevent automated scraping by some measure
 - Apertus
     - No structured output
     - No dotnet wrapper (OpenAI Client didn't work)
@@ -9,7 +11,7 @@
     - Duplicate check on DB initialization
     - Initialization from scratch: Don't build complete index on document update
 
-## Open
+### Open
 
 - How to handle multiple products on website
 - Some technical details are only available in images
@@ -39,8 +41,11 @@
 In the short timeframe, not every idea and process was realistic to be realised. In this section, we want to show some further work that could be done, to improve on the existing solution prototype.
 
 ### Classification Enrichment
-- Extracted product data can be enriched with web searches to optimally define the product in question
+- Extracted product data can be enriched with web searches to optimally define the product in question (in progress...)
 
-### Full Scan
+### Caching
+- Product evaluation can be cached by unique product identifier or at least URL to improve performance and efficience (in progress...)
+
+### Visual Data Extraction
 Currently the check will be accomplished by extracting text data. Further improvements could be achieved by also evaluating visual data like images or video.
 This could be incorporated by providing a "Full Scan" option to the user, which will take longer, but will consider more data thus being more precise.

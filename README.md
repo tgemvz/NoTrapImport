@@ -22,6 +22,9 @@ Can you build an AI-based tool that prevents users from buying products that are
 #### Axe on Temu Shop
 ![example axe on temu](./Doc/example_usage_temu_axe.png)
 
+#### Axe on Temu Shop with Potential Risk
+![example axe on temu](./Doc/example_usage_temu_axe_potential_risk.png)
+
 ## Important Links
 
 - [Challenge: SwissGov3](https://zh.swiss-ai-weeks.ch/challenges/swissgov3)
