@@ -1,0 +1,23 @@
+﻿using AspireApp.ApiService.Services;
+using Microsoft.AspNetCore.Mvc;
+
+namespace AspireApp.ApiService;
+
+[ApiController]
+[Route("api/[controller]")]
+public class ProductController : ControllerBase
+{
+    [HttpGet("classification")] 
+    public async Task<ActionResult<string>> GetClassification([FromQuery] string url, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return BadRequest("The URL path parameter is missing.");
+        }
+
+        var service = new CoordinationService(new WebContentFetcher(), new AspireAppAIWrapper());
+        var classification = await service.ClassifyProductByUrl(url, cancellationToken);
+
+        return Ok(classification);
+    }
+}
