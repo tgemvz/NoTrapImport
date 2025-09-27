@@ -101,6 +101,28 @@ def clean_pipeline(text):
 
     return lemmatized_words
 
+def filename_to_url(filename: str) -> str:
+    # Step 1: Remove the fixed prefix
+    prefix = "fedlex-data-admin-ch-eli-cc-"
+    if not filename.startswith(prefix):
+        raise ValueError("Filename does not start with expected prefix.")
+    trimmed = filename[len(prefix):]
+
+    # Step 2: Split at '-' to extract year and id
+    parts = trimmed.split('-')
+    if len(parts) < 4:
+        raise ValueError("Filename does not contain enough parts.")
+    
+    year = parts[0]
+    id_ = parts[1]
+
+
+    html_index = parts.index("html")
+    lang = parts[html_index - 1]
+
+    # Step 4: Construct and return the URL
+    return f"https://www.fedlex.admin.ch/eli/cc/{year}/{id_}/{lang}"
+
 def initialize_index():
     global retriever
     doc_list = []
@@ -127,7 +149,7 @@ def initialize_index():
                 doc = {
                     "docno": f"{base_docno}_{idx}",
                     "filename": filename,
-                    "url": "https://" + base_docno.replace("-", "/").replace("fedlex/data/admin/ch/", "www.fedlex.admin.ch/").replace("/html", ""),
+                    "url": filename_to_url(base_docno),
                     "text": chunk
                 }
                 doc_list.append(doc)

@@ -78,7 +78,7 @@ function App() {
         chrome.scripting.executeScript(
           {
             target: { tabId: tab.id },
-            func: () => ({ url: document.location.href, html: document.documentElement.outerText }),
+            func: () => ({ url: document.location.href, html: document.documentElement.outerHTML }),
           },
           (results) => {
             const html = results[0].result.html;
