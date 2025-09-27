@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36511.14 d17.14
+VisualStudioVersion = 17.14.36511.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspireApp.AppHost", "AspireApp.AppHost\AspireApp.AppHost.csproj", "{22CE8D2E-832E-4D4E-847A-F9F442617783}"
 EndProject
@@ -11,6 +11,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspireApp.Web", "AspireApp.Web\AspireApp.Web.csproj", "{167C9083-B235-CCD4-47F1-339EE30AC88F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspireApp.Tests", "AspireApp.Tests\AspireApp.Tests.csproj", "{D9783889-C6EE-4C1F-E6F6-0CADA1E864EF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspireApp.RagService", "AspireApp.RagService\AspireApp.RagService.csproj", "{612BFE8A-5488-26F4-927C-ABE628C3FB2A}"
+EndProject
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "AspireApp.TextEmbedding", "AspireApp.TextEmbedding\AspireApp.TextEmbedding.pyproj", "{D6F4D1AC-E913-49CC-AEF0-31AED4BB9DE1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -38,6 +42,14 @@ Global
 		{D9783889-C6EE-4C1F-E6F6-0CADA1E864EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D9783889-C6EE-4C1F-E6F6-0CADA1E864EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D9783889-C6EE-4C1F-E6F6-0CADA1E864EF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{612BFE8A-5488-26F4-927C-ABE628C3FB2A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{612BFE8A-5488-26F4-927C-ABE628C3FB2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{612BFE8A-5488-26F4-927C-ABE628C3FB2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{612BFE8A-5488-26F4-927C-ABE628C3FB2A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D6F4D1AC-E913-49CC-AEF0-31AED4BB9DE1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6F4D1AC-E913-49CC-AEF0-31AED4BB9DE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6F4D1AC-E913-49CC-AEF0-31AED4BB9DE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6F4D1AC-E913-49CC-AEF0-31AED4BB9DE1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
