@@ -14,6 +14,7 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspireApp.Tests", "AspireApp.Tests\AspireApp.Tests.csproj", "{D9783889-C6EE-4C1F-E6F6-0CADA1E864EF}"
 EndProject
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "AspireApp.DocumentRetrievalService", "AspireApp.DocumentRetrievalService\AspireApp.DocumentRetrievalService.pyproj", "{D6F4D1AC-E913-49CC-AEF0-31AED4BB9DE1}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspireApp.AIWrapper", "AspireApp.AIWrapper\AspireApp.AIWrapper.csproj", "{33578FF0-7F02-4A8E-B4AD-AEC38835FA72}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspireApp.AiWrapperTest", "AspireApp.AiWrapperTest\AspireApp.AiWrapperTest.csproj", "{A4E66CA7-C591-4652-BDCE-7AC797FE8DCD}"
@@ -86,13 +87,21 @@ Global
 		{D9783889-C6EE-4C1F-E6F6-0CADA1E864EF}.Debug|x86.Build.0 = Debug|Any CPU
 		{D9783889-C6EE-4C1F-E6F6-0CADA1E864EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D9783889-C6EE-4C1F-E6F6-0CADA1E864EF}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D6F4D1AC-E913-49CC-AEF0-31AED4BB9DE1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D6F4D1AC-E913-49CC-AEF0-31AED4BB9DE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D6F4D1AC-E913-49CC-AEF0-31AED4BB9DE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D9783889-C6EE-4C1F-E6F6-0CADA1E864EF}.Release|x64.ActiveCfg = Release|Any CPU
 		{D9783889-C6EE-4C1F-E6F6-0CADA1E864EF}.Release|x64.Build.0 = Release|Any CPU
 		{D9783889-C6EE-4C1F-E6F6-0CADA1E864EF}.Release|x86.ActiveCfg = Release|Any CPU
 		{D9783889-C6EE-4C1F-E6F6-0CADA1E864EF}.Release|x86.Build.0 = Release|Any CPU
+		{D6F4D1AC-E913-49CC-AEF0-31AED4BB9DE1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6F4D1AC-E913-49CC-AEF0-31AED4BB9DE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6F4D1AC-E913-49CC-AEF0-31AED4BB9DE1}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D6F4D1AC-E913-49CC-AEF0-31AED4BB9DE1}.Debug|x64.Build.0 = Debug|Any CPU
+		{D6F4D1AC-E913-49CC-AEF0-31AED4BB9DE1}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D6F4D1AC-E913-49CC-AEF0-31AED4BB9DE1}.Debug|x86.Build.0 = Debug|Any CPU
+		{D6F4D1AC-E913-49CC-AEF0-31AED4BB9DE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6F4D1AC-E913-49CC-AEF0-31AED4BB9DE1}.Release|x64.ActiveCfg = Release|Any CPU
+		{D6F4D1AC-E913-49CC-AEF0-31AED4BB9DE1}.Release|x64.Build.0 = Release|Any CPU
+		{D6F4D1AC-E913-49CC-AEF0-31AED4BB9DE1}.Release|x86.ActiveCfg = Release|Any CPU
+		{D6F4D1AC-E913-49CC-AEF0-31AED4BB9DE1}.Release|x86.Build.0 = Release|Any CPU
 		{33578FF0-7F02-4A8E-B4AD-AEC38835FA72}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{33578FF0-7F02-4A8E-B4AD-AEC38835FA72}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{33578FF0-7F02-4A8E-B4AD-AEC38835FA72}.Debug|x64.ActiveCfg = Debug|Any CPU
