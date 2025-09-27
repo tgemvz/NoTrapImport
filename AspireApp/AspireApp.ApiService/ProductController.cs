@@ -37,7 +37,7 @@ public class ProductController : ControllerBase
         }
 
         var service = new CoordinationService(new WebContentFetcher(), new AspireAppAIWrapper(_logger));
-        _logger.LogDebug(param.html);
+
         var classification = await service.ClassifyProductByHtmlAsync(param.html, param.url, cancellationToken);
 
         return Ok(classification);

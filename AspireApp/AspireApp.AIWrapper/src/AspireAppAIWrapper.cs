@@ -30,7 +30,7 @@ public class AspireAppAIWrapper
     {
         var prompt =
 $$"""
-Respond with JSON only that exactly matches the schema:
+Respond in JSON format that matches the schema:
 {{schemaString}}
 Do not include any text outside of the JSON object.
 Do not make up additional JSON properties 
@@ -56,7 +56,7 @@ When ProductLegality is above or equal 0.5 the product is considered legal, othe
     public async Task<ProductIdentificationResponse> GetProductIdentificationAsync(ProductClassificationRequest request, CancellationToken cancellationToken)
     {
         var schemaString = GetJsonSchema<ProductIdentificationResponse>();
-        var systemMessage = "You are a Productidentifier that responds in JSON format only" +
+        var systemMessage = "You are a Productidentifier that identifies products." +
                             GetPromptForJsonSchema(schemaString)
                            ;
 
@@ -70,14 +70,14 @@ When ProductLegality is above or equal 0.5 the product is considered legal, othe
 
     public async Task<ProductClassificationResponse> GetProductClassificationAsync(ProductIdentificationRequest request, CancellationToken cancellationToken)
     {
-        var requestDesc = request.ProductDescription ?? "";
+        var requestDesc = request.ProductDescription ?? "no description available";
 
         var relevantLegalContext = await GetRagResult<RagResult[]>(requestDesc); // use product description as query for RAG
 
         var legalContextInfo = relevantLegalContext.Select(c => new Tuple<string, string>(c.Url, c.Text)).ToArray();
 
         var schemaString = GetJsonSchema<ProductClassificationResponse>();
-        var systemMessage = "You are a Productclassifier that responds in JSON format only" +
+        var systemMessage = "You are a Productclassifier that determines if a product is allowed to be imported." +
                             GetPromptForClassification(legalContextInfo) +
                             GetPromptForJsonSchema(schemaString)
                            ;
@@ -86,7 +86,7 @@ When ProductLegality is above or equal 0.5 the product is considered legal, othe
         result.Id = request.Id;
         result.ProductUrl = request.ProductUrl;
 
-        _logger.LogDebug($"Classification result: {JsonSerializer.Serialize(result)}");
+        _logger.LogDebug($"Classification result (Deserialized): {JsonSerializer.Serialize(result)}");
 
         return result;
     }
@@ -119,7 +119,7 @@ When ProductLegality is above or equal 0.5 the product is considered legal, othe
             var maybe = JsonSerializer.Deserialize<T>(ragDoc, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if (maybe != null)
             {
-                _logger.LogDebug($"RAG result: {JsonSerializer.Serialize(maybe)}");
+                _logger.LogDebug($"RAG result: {firstDoc}");
                 return maybe;
             }
         }
@@ -181,7 +181,6 @@ When ProductLegality is above or equal 0.5 the product is considered legal, othe
         }
 
         var payloadStr = result ?? respJson;
-        _logger.LogDebug($"LLM extracted payload in GetChatMessageSemiStructuredOutput: {payloadStr}");
         // Attempt to deserialize the payload into the requested class T.
         var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
@@ -191,7 +190,7 @@ When ProductLegality is above or equal 0.5 the product is considered legal, othe
             var direct = JsonSerializer.Deserialize<T>(payloadStr, options);
             if (direct != null)
             {
-                _logger.LogDebug($"LLM direct deserialization successful in GetChatMessageSemiStructuredOutput: {JsonSerializer.Serialize(direct)}");
+                _logger.LogDebug($"LLM direct deserialization successful in GetChatMessageSemiStructuredOutput: {payloadStr}");
                 return direct;
             }
         }
@@ -211,7 +210,7 @@ When ProductLegality is above or equal 0.5 the product is considered legal, othe
                 var extracted = JsonSerializer.Deserialize<T>(jsonOnly, options);
                 if (extracted != null)
                 {
-                    _logger.LogDebug($"LLM extracted deserialization successful in GetChatMessageSemiStructuredOutput: {JsonSerializer.Serialize(extracted)}");
+                    _logger.LogDebug($"LLM extracted deserialization successful in GetChatMessageSemiStructuredOutput: {jsonOnly}");
                     return extracted;
                 }
             }
