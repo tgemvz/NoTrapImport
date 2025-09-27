@@ -11,21 +11,10 @@ builder.AddProject<Projects.AspireApp_Web>("webfrontend")
     .WithReference(apiService)
     .WaitFor(apiService);
 
-var textEmbedding = builder.AddDockerfile(
-    "textEmbedding", "../AspireApp.TextEmbedding")
+var documentRetrievalService = builder.AddDockerfile(
+    "DocumentRetrievalService", "../AspireApp.DocumentRetrievalService")
     .WithEndpoint(name: "http", port: 8001, targetPort: 8001, scheme: "http")
-    .WithVolume("data", "/qdrant/storage");
-
-var qdrant = builder.AddContainer("qdrant", "qdrant/qdrant:latest")
-    .WithEndpoint(name: "http", port: 6334, targetPort: 6334)
-    .WithVolume("qdrant-data", "/qdrant/storage");
-
-var ragService = builder.AddProject<Projects.AspireApp_RagService>("ragservice")
-    .WithExternalHttpEndpoints()
-    .WithHttpHealthCheck("/health")
-    .WithEnvironment("TEXT_EMBEDDING_URL", "http://localhost:8001/")
-    .WaitFor(qdrant)
-    .WaitFor(textEmbedding);
+    .WithVolume("documentRetrievalServiceData", "/app/data");
 
 
 builder.Build().Run();
