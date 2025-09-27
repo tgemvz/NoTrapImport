@@ -33,12 +33,9 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Dockerfile" />
-    <Content Include="docs\doc3.json" />
-    <Content Include="docs\doc2.json" />
-    <Content Include="docs\doc1.json" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="docs\" />
+    <Folder Include="docs\*" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.Web.targets" />
   <!-- Specify pre- and post-build commands in the BeforeBuild and 
