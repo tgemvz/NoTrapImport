@@ -12,7 +12,7 @@ public class CoordinationServiceTests
 
     private static string TestPistol =
         "https://www.action-shop24.de/MAUSER-1911-OD-Green-.22lr-HV-Selbstladepistole/411.02.13";
-    
+
     [TestMethod]
     public async Task TestMyFluff()
     {
@@ -26,10 +26,10 @@ public class CoordinationServiceTests
             .ReturnsAsync(fileContent);
         var coordinationService = new CoordinationService(contentFetcherMock.Object, wrapper);
 
-        var classification = await coordinationService.ClassifyProductByHtmlAsync(fileContent, cancellationToken);
+        var classification = await coordinationService.ClassifyProductByHtmlAsync(fileContent, "http://example.com", cancellationToken);
         classification.Should().NotBeNull();
     }
-    
+
     [TestMethod]
     public async Task TestMyFluff2_Knife()
     {
@@ -45,7 +45,7 @@ public class CoordinationServiceTests
         classification.ProductLegality.Should().Be(100);
         classification.IsLegal.Should().Be(true);
     }
-    
+
     [TestMethod]
     public async Task TestMyFluff2_Pistol()
     {

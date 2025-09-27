@@ -10,9 +10,15 @@ body {
 }
 
 .legal h6 {
-    color: lightgreen !important;
+    color: #398712 !important;
 }
 
 .illegal h6 {
-    color: lightcoral !important;
+    color: #861D13 !important;
 }
+
+
+.uncertain h6 {
+    color: #FFBF00 !important;
+}
+

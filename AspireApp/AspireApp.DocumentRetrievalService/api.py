@@ -1,9 +1,6 @@
 ﻿# -*- coding: utf-8 -*-
-from webbrowser import get
 from flask import Flask, request, jsonify
 from flask_restx import Api, Resource, fields
-import pyterrier as pt
-import pandas as pd
 import os
 import glob
 import json
@@ -15,7 +12,6 @@ from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import shutil
-
 
 nltk.download("stopwords")
 nltk.download('wordnet')
@@ -31,14 +27,10 @@ safe_nltk_download('corpora/stopwords')
 safe_nltk_download('corpora/wordnet')
 safe_nltk_download('corpora/omw-1.4')
 
-# Initialize PyTerrier
-if not pt.java.started():
-    pt.java.init()
-
 # Flask app and API
 app = Flask(__name__)
 api = Api(app, version='1.0', title='Document Search API',
-          description='A simple BM25-based document search API with PyTerrier and Swagger UI')
+          description='A simple semantic document search API with Sentence Transformers and Swagger UI')
 
 ns = api.namespace('search', description='Search operations')
 
@@ -54,8 +46,6 @@ INDEX_PATH = "/app/data/index"
 MAX_WORDS_PER_CHUNK = 300
 
 # Globals
-retriever = None
-
 SEMANTIC_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
 semantic_model = SentenceTransformer(SEMANTIC_MODEL_NAME)
 semantic_embeddings = None
@@ -110,14 +100,12 @@ def filename_to_url(filename: str) -> str:
     year = parts[0]
     id_ = parts[1]
 
-
     html_index = parts.index("html")
     lang = parts[html_index - 1]
 
     return f"https://www.fedlex.admin.ch/eli/cc/{year}/{id_}/{lang}"
 
 def initialize_index():
-    global retriever
     doc_list = []
 
     print("Loading markdown documents...")
@@ -145,25 +133,16 @@ def initialize_index():
                 }
                 doc_list.append(doc)
 
-    print(f"Prepared {len(doc_list)} document chunks for indexing.")
+    print(f"Prepared {len(doc_list)} document chunks for semantic indexing.")
 
     if not doc_list:
         print("No documents to index.")
         return
 
-    os.makedirs(INDEX_PATH, exist_ok=True)
-    df = pd.DataFrame(doc_list)
-
     if os.path.exists(INDEX_PATH):
         print(f"Index already exists at {INDEX_PATH}. Deleting the existing index.")
         shutil.rmtree(INDEX_PATH)
-
-    indexer = pt.IterDictIndexer(INDEX_PATH, meta={'docno' : 200, 'filename': 200, 'url': 200, 'text': 30000}, fields=['text'])
-    index_ref = indexer.index(df.to_dict(orient='records'))
-    retriever = pt.terrier.Retriever(index_ref)
-    retriever.controls["wmodel"] = "BM25"
-    retriever.metadata = ["docno", "filename", "url", "text"]
-    print("Indexing completed.")
+    os.makedirs(INDEX_PATH, exist_ok=True)
 
     initialize_semantic_embeddings(doc_list)
 
@@ -179,43 +158,6 @@ def initialize_semantic_embeddings(doc_list):
 
 def sanitize_query(query):
     return re.sub(r'[()\[\]{}^~*?:\"\\]', '', query)
-
-# Old/Obsolete query with BM25    
-@ns.route('/query')
-class QueryDocuments(Resource):
-    @ns.expect(query_model)
-    def post(self):
-        """Query the indexed documents"""
-        global retriever
-
-        if retriever is None:
-            return {"error": "Index is not initialized."}, 500
-
-        data = request.json
-        query_text = data.get("query", "")
-        k = int(data.get("k", 5))
-
-        if not query_text:
-            return {"error": "Query is required"}, 400
-
-        query_text = sanitize_query(query_text)
-        query_text = " ".join(clean_pipeline(query_text))
-
-        print("query with ", query_text)
-
-        query_df = pd.DataFrame([{"qid": "1", "query": query_text}])
-        results = retriever.transform(query_df).head(k)
-
-        response = []
-        for _, row in results.iterrows():
-            response.append({
-                "docno": row.get("docno"),
-                "score": row.get("score"),
-                "url": row.get("url"),
-                "text":  row.get("text")
-            })
-
-        return jsonify(response)
 
 @ns.route('/semantic_query')
 class SemanticQueryDocuments(Resource):
@@ -268,12 +210,8 @@ if __name__ == "__main__":
     embeddings_path = "/app/data/semantic_embeddings.npy"
     chunks_path = "/app/data/semantic_doc_chunks.json"
 
-    if os.path.exists(INDEX_PATH) and os.path.exists(os.path.join(INDEX_PATH, "data.properties")):
-        index_ref = pt.IndexRef.of(INDEX_PATH)
-        retriever = pt.terrier.Retriever(index_ref)
-        retriever.controls["wmodel"] = "BM25"
-        retriever.metadata = ["docno", "filename", "url", "text"]
-        print("Index loaded from disk.")
+    if os.path.exists(INDEX_PATH):
+        print("Semantic index loaded from disk.")
 
         if os.path.exists(embeddings_path) and os.path.exists(chunks_path):
             semantic_embeddings = np.load(embeddings_path)
@@ -303,7 +241,7 @@ if __name__ == "__main__":
                 with open(chunks_path, "w", encoding="utf-8") as f:
                     json.dump(semantic_doc_chunks, f, ensure_ascii=False)
     else:
-        print("Index wird neu erstellt, da kein Index vorhanden ist.")
+        print("Semantic index wird neu erstellt, da kein Index vorhanden ist.")
         initialize_index()
 
     app.run(host='0.0.0.0', port=8001, debug=True)

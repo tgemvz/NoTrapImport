@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Web;
+using Microsoft.Extensions.Logging;
 
 public class AspireAppAIWrapper
 {
@@ -9,8 +10,11 @@ public class AspireAppAIWrapper
     private readonly string _endpoint;
     private readonly string _ragEndpoint;
 
-    public AspireAppAIWrapper()
+    ILogger _logger;
+
+    public AspireAppAIWrapper(ILogger logger)
     {
+        _logger = logger;
         var apiKey = Environment.GetEnvironmentVariable("SWISS_AI_PLATFORM_API_KEY");
         if (string.IsNullOrWhiteSpace(apiKey))
         {
@@ -26,23 +30,52 @@ public class AspireAppAIWrapper
     {
         var prompt =
 $$"""
-Respond with JSON only that exactly matches the schema:
+You are a strict JSON-only responder. Produce exactly one top-level JSON value that VALIDATES against the provided schema and nothing else.
+
+Requirements:
+1) Output only valid JSON. Do not include any text, explanation, metadata, markdown, or code fences before or after the JSON.
+2) Do not add, remove, or rename properties. Only include properties defined in the schema.
+3) Respect JSON types exactly:
+   - string -> JSON string (use quotes)
+   - number/integer -> numeric literal (no quotes)
+   - boolean -> true or false (no quotes)
+   - array -> JSON array (use [] if empty)
+   - object -> JSON object (include nested properties or set them to null)
+4) If a property value cannot be determined, set it to null. Do not create extra explanatory fields.
+5) Arrays must be present as arrays (even if empty). Objects must be present as objects (or null if unknown and allowed).
+6) No comments, no trailing commas, and ensure the JSON parses with a strict JSON parser (e.g. JSON.parse).
+7) Keep the output minimal and syntactically correct so it can be deserialized directly into the target type.
+
+Schema:
 {{schemaString}}
-Do not include any text outside of the JSON object.
-Do not make up additional JSON properties 
+
+Now return only the JSON that conforms to the schema.
 """;
         return prompt;
     }
-    public static string GetPromptForClassification(string legalContextInfo)
+    public static string GetPromptForClassification(Tuple<string, string>[] legalContextInfo)
     {
         var prompt =
 $$"""
-To determine if a product may be legally imported into Switerzland use following legal context:
+You are an expert assistant for Swiss import law. Use ONLY the legal context provided below and nothing else to evaluate whether the product may be legally imported into Switzerland.
+
+Strict output rules (will be combined with a JSON schema prompt — output MUST be valid JSON that matches that schema and nothing else):
+1) Output only a single JSON object. Do NOT include any prose, commentary, headings, or markdown outside the JSON.
+2) Do NOT add, remove, or rename properties. Follow property names and types exactly.
+3) productLegality: return a number between 0.0 and 1.0 (inclusive) representing the likelihood the product is legal to import.
+   - 1.0 = clearly legal under the provided context
+   - 0.0 = clearly illegal under the provided context
+   - If uncertain, choose an appropriate probability and justify briefly in legalExplanation.
+4) isLegal: MUST be true if productLegality >= 0.5, otherwise false. Ensure boolean is consistent with productLegality.
+5) legalExplanation: give a concise explanation (1–3 short sentences) that cites ONLY information from the provided legal context. If the context is insufficient, state "Insufficient information" and list the specific missing facts needed to decide.
+6) linkToLegalDocuments: include only URLs present in the provided legal context or RAG result. Do NOT fabricate or modify URLs. If none are available, return an empty array [].
+7) If a property value cannot be determined, set it to null (except linkToLegalDocuments which should be [] if none).
+8) No extra properties, no comments, no trailing commas, and ensure strict JSON parseability.
+
+Legal context (use exactly as provided; do NOT invent facts):
 {{legalContextInfo}}
-Do not make up any legal context.
-If the legal context does not provide sufficient information to determine the legality of the product,
-respond with a value within the range [0, 1} and explain that in LegalExplanation.
-When ProductLegality is above or equal 0.5 the product is considered legal, otherwise illegal
+
+Decision rule: productLegality >= 0.5 => considered legal; productLegality < 0.5 => considered illegal.
 """;
         return prompt;
     }
@@ -50,26 +83,28 @@ When ProductLegality is above or equal 0.5 the product is considered legal, othe
     public async Task<ProductIdentificationResponse> GetProductIdentificationAsync(ProductClassificationRequest request, CancellationToken cancellationToken)
     {
         var schemaString = GetJsonSchema<ProductIdentificationResponse>();
-        var systemMessage = "You are a Productidentifier that responds in JSON format only" +
+        var systemMessage = "You are a Productidentifier that identifies products." +
                             GetPromptForJsonSchema(schemaString)
                            ;
 
         var result = await GetChatMessageSemiStructuredOutput<ProductIdentificationResponse>(request.HtmlContent, systemMessage, cancellationToken);
         result.ProductUrl = request.ProductUrl;
+        result.Id = request.Id;
+        result.RequestDate = request.RequestDate;
+        _logger.LogDebug($"Identification result: {JsonSerializer.Serialize(result)}");
         return result;
     }
 
     public async Task<ProductClassificationResponse> GetProductClassificationAsync(ProductIdentificationRequest request, CancellationToken cancellationToken)
     {
-        var requestDesc = request.ProductDescription ?? "";
+        var requestDesc = request.ProductDescription ?? "no description available";
 
-        var relevantLegalContext = await GetRagResult<RagResult>(requestDesc); // use product description as query for RAG
+        var relevantLegalContext = await GetRagResult<RagResult[]>(requestDesc); // use product description as query for RAG
 
-        var legalContextInfo = relevantLegalContext.Text;
-        var urltoLegalDocs = relevantLegalContext.Url != null ? relevantLegalContext.Url : "N/A";
+        var legalContextInfo = relevantLegalContext.Select(c => new Tuple<string, string>(c.Url, c.Text)).ToArray();
 
         var schemaString = GetJsonSchema<ProductClassificationResponse>();
-        var systemMessage = "You are a Productclassifier that responds in JSON format only" +
+        var systemMessage = "You are a Productclassifier that determines if a product is allowed to be imported." +
                             GetPromptForClassification(legalContextInfo) +
                             GetPromptForJsonSchema(schemaString)
                            ;
@@ -77,7 +112,8 @@ When ProductLegality is above or equal 0.5 the product is considered legal, othe
         var result = await GetChatMessageSemiStructuredOutput<ProductClassificationResponse>(requestDesc, systemMessage, cancellationToken);
         result.Id = request.Id;
         result.ProductUrl = request.ProductUrl;
-        result.LinkToLegalDocuments = [urltoLegalDocs];
+
+        _logger.LogDebug($"Classification result (Deserialized): {JsonSerializer.Serialize(result)}");
 
         return result;
     }
@@ -93,7 +129,7 @@ When ProductLegality is above or equal 0.5 the product is considered legal, othe
         var ragPayload = new
         {
             query = request,
-            top_k = 1
+            k = 3
         };
         var json = JsonSerializer.Serialize(ragPayload);
         ragReq = new HttpRequestMessage(HttpMethod.Post, _ragEndpoint)
@@ -107,10 +143,12 @@ When ProductLegality is above or equal 0.5 the product is considered legal, othe
 
         if (ragDoc.RootElement.ValueKind == JsonValueKind.Array && ragDoc.RootElement.GetArrayLength() > 0)
         {
-            var firstDoc = ragDoc.RootElement[0];
-
-            var maybe = JsonSerializer.Deserialize<T>(firstDoc, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            if (maybe != null) return maybe;
+            var maybe = JsonSerializer.Deserialize<T>(ragDoc, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (maybe != null)
+            {
+                _logger.LogDebug($"RAG result: {firstDoc}");
+                return maybe;
+            }
         }
 
         throw new InvalidOperationException($"Failed to convert LLM response to {typeof(T).Name}. Response: {ragRespJson}");
@@ -150,6 +188,7 @@ When ProductLegality is above or equal 0.5 the product is considered legal, othe
         resp.EnsureSuccessStatusCode();
 
         var respJson = await resp.Content.ReadAsStringAsync();
+        _logger.LogDebug($"LLM raw response in GetChatMessageSemiStructuredOutput: {respJson}");
         using var doc = JsonDocument.Parse(respJson);
 
         // Try common shapes: choices[0].message.content (OpenAI chat-completions) or choices[0].text / content[0].text
@@ -169,7 +208,6 @@ When ProductLegality is above or equal 0.5 the product is considered legal, othe
         }
 
         var payloadStr = result ?? respJson;
-
         // Attempt to deserialize the payload into the requested class T.
         var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
@@ -177,7 +215,11 @@ When ProductLegality is above or equal 0.5 the product is considered legal, othe
         try
         {
             var direct = JsonSerializer.Deserialize<T>(payloadStr, options);
-            if (direct != null) return direct;
+            if (direct != null)
+            {
+                _logger.LogDebug($"LLM direct deserialization successful in GetChatMessageSemiStructuredOutput: {payloadStr}");
+                return direct;
+            }
         }
         catch (JsonException)
         {
@@ -195,6 +237,7 @@ When ProductLegality is above or equal 0.5 the product is considered legal, othe
                 var extracted = JsonSerializer.Deserialize<T>(jsonOnly, options);
                 if (extracted != null)
                 {
+                    _logger.LogDebug($"LLM extracted deserialization successful in GetChatMessageSemiStructuredOutput: {jsonOnly}");
                     return extracted;
                 }
             }
@@ -209,11 +252,13 @@ When ProductLegality is above or equal 0.5 the product is considered legal, othe
             case nameof(ProductIdentificationResponse):
                 var res1 = Activator.CreateInstance<T>();
                 (res1 as ProductIdentificationResponse)!.ProductDescription = payloadStr;
+                _logger.LogDebug($"LLM fallback deserialization successful in GetChatMessageSemiStructuredOutput: {JsonSerializer.Serialize(res1)}");
                 return res1;
 
             case nameof(ProductClassificationResponse):
                 var res2 = Activator.CreateInstance<T>();
                 (res2 as ProductClassificationResponse)!.LegalExplanation = payloadStr;
+                _logger.LogDebug($"LLM fallback deserialization successful in GetChatMessageSemiStructuredOutput: {JsonSerializer.Serialize(res2)}");
                 return res2;
 
             default:

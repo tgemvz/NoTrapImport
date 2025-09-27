@@ -53,10 +53,17 @@ function ResultView() {
     }
     if (!result.val) return "";
     if (result.val.isLegal !== undefined) {
-      return div({ class: result.val.isLegal ? "legal" : "illegal" },
-        h6(`Product is ${result.val.isLegal ? "legal" : "illegal"}`),
+      let state = result.val.isLegal ? "legal" : "illegal";
+      if(result.val.productLegality != null) {
+        if(result.val.productLegality < 0.333) state = "illegal";
+        else if(result.val.productLegality < 0.666) state = "uncertain";
+        else state = "legal";
+      } 
+      return div({ class: state },
+        h6(`Product is ${state == "uncertain" ? "a potential risk" : state} (legality score: ${result.val.productLegality})`),
         p(result.val.legalExplanation),
-        result.val.linkToLegalDocuments ? a({ href: result.val.linkToLegalDocuments, target: "_blank" }, "Link to legal documents") : ""
+        result.val.linkToLegalDocuments ? [...new Set(result.val.linkToLegalDocuments)]
+          .map((href, idx) => p(a({ href: href, target: "_blank" }, "Link to legal document " +  (idx + 1)))) : ""
       );
     } else {
       return div(p(JSON.stringify(result.val)));

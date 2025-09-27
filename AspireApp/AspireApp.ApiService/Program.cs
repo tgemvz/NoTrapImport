@@ -1,6 +1,20 @@
 using Microsoft.OpenApi.Models;
+using NLog;
+using NLog.Extensions.Logging;
+using NLog.Web;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.ClearProviders();
+
+var logger = NLog.LogManager.Setup().LoadConfigurationFromSection(builder.Configuration).GetCurrentClassLogger();
+
+// Ensure Host will use NLog
+builder.Host.UseNLog();
+
+builder.Services.AddSingleton(NLog.LogManager.LogFactory);
+builder.Services.AddSingleton<Func<Type, NLog.ILogger>>(sp => (type) => NLog.LogManager.GetLogger(type.FullName!));
+builder.Services.AddTransient(typeof(NLogLogger<>));
 
 // Add service defaults & Aspire client integrations.
 builder.AddServiceDefaults();
@@ -18,6 +32,8 @@ builder.Services.AddCors(options =>
 // Add services to the container.
 builder.Services.AddProblemDetails();
 
+builder.Services.AddLogging(b => b.ClearProviders().AddNLog(builder.Configuration));
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -30,19 +46,38 @@ builder.Services.AddSwaggerGen(options =>
 });
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-app.UseCors("AllowAll");
-app.UseRouting();
-app.UseExceptionHandler();
-app.MapControllers();
-
-if (app.Environment.IsDevelopment())
+try
 {
-    app.MapOpenApi();
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    // Configure the HTTP request pipeline.
+    app.UseCors("AllowAll");
+    app.UseRouting();
+    app.UseExceptionHandler();
+    app.MapControllers();
+
+    if (app.Environment.IsDevelopment())
+    {
+        app.MapOpenApi();
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
+
+    app.MapDefaultEndpoints();
+    logger.Info("------------------------Application Starting------------------------");
+    app.Run();
+}
+catch (Exception ex)
+{
+    // Log startup errors
+    logger.Error(ex, "Application stopped because of exception");
+    throw;
+}
+finally
+{
+    // Ensure to flush and stop internal timers/threads before application exit
+    NLog.LogManager.Shutdown();
 }
 
-app.MapDefaultEndpoints();
-
-app.Run();
+public sealed class NLogLogger<T>
+{
+    public NLog.ILogger Logger { get; } = NLog.LogManager.GetLogger(typeof(T).FullName!);
+}
