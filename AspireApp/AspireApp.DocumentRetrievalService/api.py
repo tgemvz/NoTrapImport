@@ -1,3 +1,4 @@
+﻿# -*- coding: utf-8 -*-
 from webbrowser import get
 from flask import Flask, request, jsonify
 from flask_restx import Api, Resource, fields
@@ -36,6 +37,7 @@ query_model = api.model('Query', {
 DOCUMENTS_DIR = "/app/data/docs"
 INDEX_PATH = "/app/data/index"
 MAX_WORDS_PER_CHUNK = 300
+FILE_COUNT_PATH = "/app/data/file_count.txt"
 
 # Globals
 retriever = None
@@ -205,9 +207,28 @@ def semantic_search(query, k=5):
         })
     return results
 
+def get_md_file_count():
+    return len(glob.glob(os.path.join(DOCUMENTS_DIR, "*.md")))
+
+def read_stored_file_count():
+    if not os.path.exists(FILE_COUNT_PATH):
+        return None
+    try:
+        with open(FILE_COUNT_PATH, "r") as f:
+            return int(f.read().strip())
+    except Exception:
+        return None
+
+def write_file_count(count):
+    with open(FILE_COUNT_PATH, "w") as f:
+        f.write(str(count))
+
 if __name__ == "__main__":
-    if os.path.exists(INDEX_PATH) and os.path.exists(os.path.join(INDEX_PATH, "data.properties")):
-        # Load existing index
+    current_count = get_md_file_count()
+    stored_count = read_stored_file_count()
+
+    if os.path.exists(INDEX_PATH) and os.path.exists(os.path.join(INDEX_PATH, "data.properties")) and stored_count == current_count:
+        # Index und Embeddings laden, da sich die Anzahl nicht geändert hat
         index_ref = pt.IndexRef.of(INDEX_PATH)
         retriever = pt.terrier.Retriever(index_ref)
         retriever.controls["wmodel"] = "BM25"
@@ -235,7 +256,8 @@ if __name__ == "__main__":
         if doc_list:
             initialize_semantic_embeddings(doc_list)
     else:
-        print("Index not found. Creating new index...")
+        print("Index wird neu erstellt, da sich die Anzahl der Markdown-Dateien geändert hat oder kein Index vorhanden ist.")
         initialize_index()
+        write_file_count(current_count)
 
     app.run(host='0.0.0.0', port=8001, debug=True)
