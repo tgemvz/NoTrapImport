@@ -1,3 +1,4 @@
+﻿# -*- coding: utf-8 -*-
 from webbrowser import get
 from flask import Flask, request, jsonify
 from flask_restx import Api, Resource, fields
@@ -8,12 +9,18 @@ import glob
 import json
 import re
 import nltk
-from nltk.corpus import stopwords
+from nltk.corpus import stopwords, wordnet
+from nltk.stem import SnowballStemmer, WordNetLemmatizer
+import nltk
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+import shutil
+
 
 nltk.download("stopwords")
+nltk.download('wordnet')
+nltk.download('omw-1.4')
 
 # Initialize PyTerrier
 if not pt.java.started():
@@ -36,6 +43,7 @@ query_model = api.model('Query', {
 DOCUMENTS_DIR = "/app/data/docs"
 INDEX_PATH = "/app/data/index"
 MAX_WORDS_PER_CHUNK = 300
+FILE_COUNT_PATH = "/app/data/file_count.txt"
 
 # Globals
 retriever = None
@@ -46,21 +54,44 @@ semantic_model = SentenceTransformer(SEMANTIC_MODEL_NAME)
 semantic_embeddings = None
 semantic_doc_chunks = None
 
-def split_text_into_chunks(words, max_words):
-    """Splits text into chunks of at most max_words words."""
+
+def split_text_into_chunks(words, max_words, overlap_words):
+    """Splits text into chunks of at most max_words words with overlap."""
     chunks = []
-    for i in range(0, len(words), max_words):
+    i = 0
+    while i < len(words):
         chunk = " ".join(words[i:i+max_words])
         chunks.append(chunk)
+        i += max_words - overlap_words
     return chunks
 
 def clean_pipeline(text):
     languages = ["english", "german", "french", "italian"]
     words = text.lower().split()
+    
+    # Remove stopwords for all languages
     for lang in languages:
-        stops = set(stopwords.words(lang))
-        words = [w for w in words if w not in stops]
-    return words
+        try:
+            stops = set(stopwords.words(lang))
+            words = [w for w in words if w not in stops]
+        except OSError:
+            continue  # skip if stopwords not available for that language
+
+    # Apply stemming using SnowballStemmer
+    stemmed_words = []
+    for lang in languages:
+        try:
+            stemmer = SnowballStemmer(lang)
+            stemmed_words = [stemmer.stem(w) for w in words]
+            break  # Use first matching language (you might customize this)
+        except ValueError:
+            continue  # language not supported by SnowballStemmer
+
+    # Apply lemmatization (English only by default)
+    lemmatizer = WordNetLemmatizer()
+    lemmatized_words = [lemmatizer.lemmatize(w) for w in stemmed_words]
+
+    return lemmatized_words
 
 def initialize_index():
     global retriever
@@ -83,8 +114,7 @@ def initialize_index():
             base_docno = os.path.splitext(filename)[0]
 
             # Split content into chunks
-            chunks = split_text_into_chunks(content, MAX_WORDS_PER_CHUNK)
-
+            chunks = split_text_into_chunks(content, MAX_WORDS_PER_CHUNK, int(MAX_WORDS_PER_CHUNK / 2))
             for idx, chunk in enumerate(chunks):
                 doc = {
                     "docno": f"{base_docno}_{idx}",
@@ -102,6 +132,10 @@ def initialize_index():
 
     os.makedirs(INDEX_PATH, exist_ok=True)
     df = pd.DataFrame(doc_list)
+
+    if os.path.exists(INDEX_PATH):
+        print(f"Index already exists at {INDEX_PATH}. Deleting the existing index.")
+        shutil.rmtree(INDEX_PATH)
 
     indexer = pt.IterDictIndexer(INDEX_PATH, meta={'docno' : 200, 'filename': 200, 'url': 200, 'text': 30000}, fields=['text'])
     index_ref = indexer.index(df.to_dict(orient='records'))
@@ -205,9 +239,28 @@ def semantic_search(query, k=5):
         })
     return results
 
+def get_md_file_count():
+    return len(glob.glob(os.path.join(DOCUMENTS_DIR, "*.md")))
+
+def read_stored_file_count():
+    if not os.path.exists(FILE_COUNT_PATH):
+        return None
+    try:
+        with open(FILE_COUNT_PATH, "r") as f:
+            return int(f.read().strip())
+    except Exception:
+        return None
+
+def write_file_count(count):
+    with open(FILE_COUNT_PATH, "w") as f:
+        f.write(str(count))
+
 if __name__ == "__main__":
-    if os.path.exists(INDEX_PATH) and os.path.exists(os.path.join(INDEX_PATH, "data.properties")):
-        # Load existing index
+    current_count = get_md_file_count()
+    stored_count = read_stored_file_count()
+
+    if os.path.exists(INDEX_PATH) and os.path.exists(os.path.join(INDEX_PATH, "data.properties")) and stored_count == current_count:
+        # Index und Embeddings laden, da sich die Anzahl nicht geändert hat
         index_ref = pt.IndexRef.of(INDEX_PATH)
         retriever = pt.terrier.Retriever(index_ref)
         retriever.controls["wmodel"] = "BM25"
@@ -223,7 +276,7 @@ if __name__ == "__main__":
                 content = clean_pipeline(content)
                 filename = os.path.basename(filepath)
                 base_docno = os.path.splitext(filename)[0]
-                chunks = split_text_into_chunks(content, MAX_WORDS_PER_CHUNK)
+                chunks = split_text_into_chunks(content, MAX_WORDS_PER_CHUNK, int(MAX_WORDS_PER_CHUNK / 2))
                 for idx, chunk in enumerate(chunks):
                     doc = {
                         "docno": f"{base_docno}_{idx}",
@@ -235,7 +288,8 @@ if __name__ == "__main__":
         if doc_list:
             initialize_semantic_embeddings(doc_list)
     else:
-        print("Index not found. Creating new index...")
+        print("Index wird neu erstellt, da sich die Anzahl der Markdown-Dateien geändert hat oder kein Index vorhanden ist.")
         initialize_index()
+        write_file_count(current_count)
 
     app.run(host='0.0.0.0', port=8001, debug=True)
