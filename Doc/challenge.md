@@ -3,6 +3,7 @@
 # Open
 
 - How to handle multiple products on website
+- Some technical details are only available in images
 
 ## Abstract
 

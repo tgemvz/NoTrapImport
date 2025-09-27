@@ -84,3 +84,7 @@ section{
   - Query relevant documents
   - RAG approach: Use LLM to provide confidence regarding product legality in context of the retrieved documents
 -->
+
+---
+
+![h:500 center](../Doc/example_usage_book_tnt.png)
