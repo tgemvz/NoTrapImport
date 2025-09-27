@@ -29,10 +29,19 @@ query_model = api.model('Query', {
 # Constants
 DOCUMENTS_DIR = "/app/data/docs"
 INDEX_PATH = "/app/data/index"
-
+MAX_WORDS_PER_CHUNK = 3000
 
 # Globals
 retriever = None
+
+def split_text_into_chunks(text, max_words):
+    """Splits text into chunks of at most max_words words."""
+    words = text.split()
+    chunks = []
+    for i in range(0, len(words), max_words):
+        chunk = " ".join(words[i:i+max_words])
+        chunks.append(chunk)
+    return chunks
 
 def initialize_index():
     global retriever
@@ -45,22 +54,27 @@ def initialize_index():
 
     # Get all .md files
     doc_files = glob.glob(os.path.join(DOCUMENTS_DIR, "*.md"))
-    json.dumps(doc_files)
+    print(f"Found {len(doc_files)} markdown files.")
 
     for filepath in doc_files:
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read()
             filename = os.path.basename(filepath)
-            docno = os.path.splitext(filename)[0]
+            base_docno = os.path.splitext(filename)[0]
 
-            doc = {
-                "docno": docno,
-                "url": "https://" + docno.replace("-", "/").replace("fedlex/data/admin/ch/", "www.fedlex.admin.ch/").replace("/html", ""),
-                "text": content
-            }
-            doc_list.append(doc)
+            # Split content into chunks
+            chunks = split_text_into_chunks(content, MAX_WORDS_PER_CHUNK)
 
-    print(f"Loaded {len(doc_list)} markdown documents.")
+            for idx, chunk in enumerate(chunks):
+                doc = {
+                    "docno": f"{base_docno}_{idx}",
+                    "filename": filename,
+                    "url": "https://" + base_docno.replace("-", "/").replace("fedlex/data/admin/ch/", "www.fedlex.admin.ch/").replace("/html", ""),
+                    "text": chunk
+                }
+                doc_list.append(doc)
+
+    print(f"Prepared {len(doc_list)} document chunks for indexing.")
 
     if not doc_list:
         print("No documents to index.")
@@ -69,17 +83,16 @@ def initialize_index():
     os.makedirs(INDEX_PATH, exist_ok=True)
     df = pd.DataFrame(doc_list)
 
-    indexer = pt.IterDictIndexer(INDEX_PATH, meta=['docno', 'url', 'text'], fields=['text'])
+    indexer = pt.IterDictIndexer(INDEX_PATH, meta={'docno' : 200, 'filename': 200, 'url': 200, 'text': 30000}, fields=['text'])
     index_ref = indexer.index(df.to_dict(orient='records'))
     retriever = pt.terrier.Retriever(index_ref)
     retriever.controls["wmodel"] = "BM25"
-    retriever.metadata = ["docno", "url", "text"]
+    retriever.metadata = ["docno", "filename", "url", "text"]
     print("Indexing completed.")
 
 def sanitize_query(query):
     return re.sub(r'[()\[\]{}^~*?:\"\\]', '', query)
     
-
 @ns.route('/query')
 class QueryDocuments(Resource):
     @ns.expect(query_model)
@@ -104,17 +117,14 @@ class QueryDocuments(Resource):
 
         response = []
         for _, row in results.iterrows():
-            with open(os.path.join(DOCUMENTS_DIR, row.get("docno") + ".md"), "r", encoding="utf-8") as f:
-                response.append({
-                    "docno": row.get("docno"),
-                    "score": row.get("score"),
-                    "url": row.get("url"),
-                    "text": f.read()
-                })
+            response.append({
+                "docno": row.get("docno"),
+                "score": row.get("score"),
+                "url": row.get("url"),
+                "text":  row.get("text")
+            })
 
         return jsonify(response)
-
-
 
 if __name__ == "__main__":
     if os.path.exists(INDEX_PATH) and os.path.exists(os.path.join(INDEX_PATH, "data.properties")):
@@ -122,7 +132,7 @@ if __name__ == "__main__":
         index_ref = pt.IndexRef.of(INDEX_PATH)
         retriever = pt.terrier.Retriever(index_ref)
         retriever.controls["wmodel"] = "BM25"
-        retriever.metadata = ["docno", "url", "text"]
+        retriever.metadata = ["docno", "filename", "url", "text"]
         print("Index loaded from disk.")
     else:
         print("Index not found. Creating new index...")
