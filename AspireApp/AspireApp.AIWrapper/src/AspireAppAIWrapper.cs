@@ -67,7 +67,7 @@ Strict output rules (will be combined with a JSON schema prompt — output MUST 
    - 0.0 = clearly illegal under the provided context
    - If uncertain, choose an appropriate probability and justify briefly in legalExplanation.
 4) isLegal: MUST be true if productLegality >= 0.5, otherwise false. Ensure boolean is consistent with productLegality.
-5) legalExplanation: give a concise explanation (1–3 short sentences) that cites ONLY information from the provided legal context. If the context is insufficient, state "Insufficient information" and list the specific missing facts needed to decide.
+5) legalExplanation: give a concise explanation (1-3 short sentences) that cites ONLY information from the provided legal context. If the context is insufficient, state "Insufficient information" and list the specific missing facts needed to decide.
 6) linkToLegalDocuments: include only URLs present in the provided legal context or RAG result. Do NOT fabricate or modify URLs. If none are available, return an empty array [].
 7) If a property value cannot be determined, set it to null (except linkToLegalDocuments which should be [] if none).
 8) No extra properties, no comments, no trailing commas, and ensure strict JSON parseability.
