@@ -55,7 +55,6 @@ MAX_WORDS_PER_CHUNK = 300
 
 # Globals
 retriever = None
-
 SEMANTIC_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
 semantic_model = SentenceTransformer(SEMANTIC_MODEL_NAME)
 semantic_embeddings = None
@@ -163,7 +162,7 @@ def initialize_index():
     retriever = pt.terrier.Retriever(index_ref)
     retriever.controls["wmodel"] = "BM25"
     retriever.metadata = ["docno", "filename", "url", "text"]
-    print("Indexing completed.")
+    print("BM25-Indexing completed.")
 
     initialize_semantic_embeddings(doc_list)
 
@@ -303,7 +302,7 @@ if __name__ == "__main__":
                 with open(chunks_path, "w", encoding="utf-8") as f:
                     json.dump(semantic_doc_chunks, f, ensure_ascii=False)
     else:
-        print("Index wird neu erstellt, da kein Index vorhanden ist.")
+        print("BM25 Index wird neu erstellt, da kein Index vorhanden ist.")
         initialize_index()
 
     app.run(host='0.0.0.0', port=8001, debug=True)
