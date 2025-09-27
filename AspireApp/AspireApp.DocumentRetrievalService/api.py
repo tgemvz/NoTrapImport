@@ -9,12 +9,16 @@ import glob
 import json
 import re
 import nltk
-from nltk.corpus import stopwords
+from nltk.corpus import stopwords, wordnet
+from nltk.stem import SnowballStemmer, WordNetLemmatizer
+import nltk
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
 nltk.download("stopwords")
+nltk.download('wordnet')
+nltk.download('omw-1.4')
 
 # Initialize PyTerrier
 if not pt.java.started():
@@ -48,21 +52,44 @@ semantic_model = SentenceTransformer(SEMANTIC_MODEL_NAME)
 semantic_embeddings = None
 semantic_doc_chunks = None
 
-def split_text_into_chunks(words, max_words):
-    """Splits text into chunks of at most max_words words."""
+
+def split_text_into_chunks(words, max_words, overlap_words):
+    """Splits text into chunks of at most max_words words with overlap."""
     chunks = []
-    for i in range(0, len(words), max_words):
+    i = 0
+    while i < len(words):
         chunk = " ".join(words[i:i+max_words])
         chunks.append(chunk)
+        i += max_words - overlap_words
     return chunks
 
 def clean_pipeline(text):
     languages = ["english", "german", "french", "italian"]
     words = text.lower().split()
+    
+    # Remove stopwords for all languages
     for lang in languages:
-        stops = set(stopwords.words(lang))
-        words = [w for w in words if w not in stops]
-    return words
+        try:
+            stops = set(stopwords.words(lang))
+            words = [w for w in words if w not in stops]
+        except OSError:
+            continue  # skip if stopwords not available for that language
+
+    # Apply stemming using SnowballStemmer
+    stemmed_words = []
+    for lang in languages:
+        try:
+            stemmer = SnowballStemmer(lang)
+            stemmed_words = [stemmer.stem(w) for w in words]
+            break  # Use first matching language (you might customize this)
+        except ValueError:
+            continue  # language not supported by SnowballStemmer
+
+    # Apply lemmatization (English only by default)
+    lemmatizer = WordNetLemmatizer()
+    lemmatized_words = [lemmatizer.lemmatize(w) for w in stemmed_words]
+
+    return lemmatized_words
 
 def initialize_index():
     global retriever
@@ -85,8 +112,7 @@ def initialize_index():
             base_docno = os.path.splitext(filename)[0]
 
             # Split content into chunks
-            chunks = split_text_into_chunks(content, MAX_WORDS_PER_CHUNK)
-
+            chunks = split_text_into_chunks(content, MAX_WORDS_PER_CHUNK, int(MAX_WORDS_PER_CHUNK / 2))
             for idx, chunk in enumerate(chunks):
                 doc = {
                     "docno": f"{base_docno}_{idx}",
@@ -244,7 +270,7 @@ if __name__ == "__main__":
                 content = clean_pipeline(content)
                 filename = os.path.basename(filepath)
                 base_docno = os.path.splitext(filename)[0]
-                chunks = split_text_into_chunks(content, MAX_WORDS_PER_CHUNK)
+                chunks = split_text_into_chunks(content, MAX_WORDS_PER_CHUNK, int(MAX_WORDS_PER_CHUNK / 2))
                 for idx, chunk in enumerate(chunks):
                     doc = {
                         "docno": f"{base_docno}_{idx}",
