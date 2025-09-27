@@ -53,7 +53,7 @@ Now return only the JSON that conforms to the schema.
 """;
         return prompt;
     }
-    public static string GetPromptForClassification(string legalContextInfo)
+    public static string GetPromptForClassification(Tuple<string, string>[] legalContextInfo)
     {
         var prompt =
 $$"""
@@ -99,10 +99,9 @@ Decision rule: productLegality >= 0.5 => considered legal; productLegality < 0.5
     {
         var requestDesc = request.ProductDescription ?? "no description available";
 
-        var relevantLegalContext = await GetRagResult<RagResult>(requestDesc); // use product description as query for RAG
+        var relevantLegalContext = await GetRagResult<RagResult[]>(requestDesc); // use product description as query for RAG
 
-        var legalContextInfo = relevantLegalContext.Text;
-        var urltoLegalDocs = relevantLegalContext.Url != null ? relevantLegalContext.Url : "N/A";
+        var legalContextInfo = relevantLegalContext.Select(c => new Tuple<string, string>(c.Url, c.Text)).ToArray();
 
         var schemaString = GetJsonSchema<ProductClassificationResponse>();
         var systemMessage = "You are a Productclassifier that determines if a product is allowed to be imported." +
@@ -113,7 +112,6 @@ Decision rule: productLegality >= 0.5 => considered legal; productLegality < 0.5
         var result = await GetChatMessageSemiStructuredOutput<ProductClassificationResponse>(requestDesc, systemMessage, cancellationToken);
         result.Id = request.Id;
         result.ProductUrl = request.ProductUrl;
-        result.LinkToLegalDocuments = [urltoLegalDocs];
 
         _logger.LogDebug($"Classification result (Deserialized): {JsonSerializer.Serialize(result)}");
 
@@ -131,7 +129,7 @@ Decision rule: productLegality >= 0.5 => considered legal; productLegality < 0.5
         var ragPayload = new
         {
             query = request,
-            top_k = 1
+            k = 3
         };
         var json = JsonSerializer.Serialize(ragPayload);
         ragReq = new HttpRequestMessage(HttpMethod.Post, _ragEndpoint)
@@ -145,9 +143,7 @@ Decision rule: productLegality >= 0.5 => considered legal; productLegality < 0.5
 
         if (ragDoc.RootElement.ValueKind == JsonValueKind.Array && ragDoc.RootElement.GetArrayLength() > 0)
         {
-            var firstDoc = ragDoc.RootElement[0];
-
-            var maybe = JsonSerializer.Deserialize<T>(firstDoc, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var maybe = JsonSerializer.Deserialize<T>(ragDoc, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if (maybe != null)
             {
                 _logger.LogDebug($"RAG result: {firstDoc}");
