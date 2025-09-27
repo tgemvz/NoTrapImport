@@ -11,7 +11,6 @@ import re
 import nltk
 from nltk.corpus import stopwords, wordnet
 from nltk.stem import SnowballStemmer, WordNetLemmatizer
-import nltk
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
@@ -19,6 +18,17 @@ import numpy as np
 nltk.download("stopwords")
 nltk.download('wordnet')
 nltk.download('omw-1.4')
+
+# Ensure required NLTK resources are available
+def safe_nltk_download(resource):
+    try:
+        nltk.data.find(resource)
+    except LookupError:
+        nltk.download(resource.split('/')[-1])
+
+safe_nltk_download('corpora/stopwords')
+safe_nltk_download('corpora/wordnet')
+safe_nltk_download('corpora/omw-1.4')
 
 # Initialize PyTerrier
 if not pt.java.started():
@@ -41,7 +51,6 @@ query_model = api.model('Query', {
 DOCUMENTS_DIR = "/app/data/docs"
 INDEX_PATH = "/app/data/index"
 MAX_WORDS_PER_CHUNK = 300
-FILE_COUNT_PATH = "/app/data/file_count.txt"
 
 # Globals
 retriever = None
@@ -51,7 +60,6 @@ SEMANTIC_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
 semantic_model = SentenceTransformer(SEMANTIC_MODEL_NAME)
 semantic_embeddings = None
 semantic_doc_chunks = None
-
 
 def split_text_into_chunks(words, max_words, overlap_words):
     """Splits text into chunks of at most max_words words with overlap."""
@@ -140,6 +148,11 @@ def initialize_index():
 
     # Semantische Suche: Embeddings initialisieren
     initialize_semantic_embeddings(doc_list)
+
+    # Nach dem Erstellen:
+    np.save("/app/data/semantic_embeddings.npy", semantic_embeddings)
+    with open("/app/data/semantic_doc_chunks.json", "w", encoding="utf-8") as f:
+        json.dump(semantic_doc_chunks, f, ensure_ascii=False)
 
 def initialize_semantic_embeddings(doc_list):
     global semantic_embeddings, semantic_doc_chunks
@@ -233,57 +246,51 @@ def semantic_search(query, k=5):
         })
     return results
 
-def get_md_file_count():
-    return len(glob.glob(os.path.join(DOCUMENTS_DIR, "*.md")))
-
-def read_stored_file_count():
-    if not os.path.exists(FILE_COUNT_PATH):
-        return None
-    try:
-        with open(FILE_COUNT_PATH, "r") as f:
-            return int(f.read().strip())
-    except Exception:
-        return None
-
-def write_file_count(count):
-    with open(FILE_COUNT_PATH, "w") as f:
-        f.write(str(count))
-
 if __name__ == "__main__":
-    current_count = get_md_file_count()
-    stored_count = read_stored_file_count()
+    # 1. Prüfe, ob Embeddings und Chunks existieren
+    embeddings_path = "/app/data/semantic_embeddings.npy"
+    chunks_path = "/app/data/semantic_doc_chunks.json"
 
-    if os.path.exists(INDEX_PATH) and os.path.exists(os.path.join(INDEX_PATH, "data.properties")) and stored_count == current_count:
-        # Index und Embeddings laden, da sich die Anzahl nicht geändert hat
+    if os.path.exists(INDEX_PATH) and os.path.exists(os.path.join(INDEX_PATH, "data.properties")):
+        # Index laden
         index_ref = pt.IndexRef.of(INDEX_PATH)
         retriever = pt.terrier.Retriever(index_ref)
         retriever.controls["wmodel"] = "BM25"
         retriever.metadata = ["docno", "filename", "url", "text"]
         print("Index loaded from disk.")
 
-        # Dokumente laden und Embeddings initialisieren
-        doc_list = []
-        doc_files = glob.glob(os.path.join(DOCUMENTS_DIR, "*.md"))
-        for filepath in doc_files:
-            with open(filepath, "r", encoding="utf-8") as f:
-                content = f.read()
-                content = clean_pipeline(content)
-                filename = os.path.basename(filepath)
-                base_docno = os.path.splitext(filename)[0]
-                chunks = split_text_into_chunks(content, MAX_WORDS_PER_CHUNK, int(MAX_WORDS_PER_CHUNK / 2))
-                for idx, chunk in enumerate(chunks):
-                    doc = {
-                        "docno": f"{base_docno}_{idx}",
-                        "filename": filename,
-                        "url": "https://" + base_docno.replace("-", "/").replace("fedlex/data/admin/ch/", "www.fedlex.admin.ch/").replace("/html", ""),
-                        "text": chunk
-                    }
-                    doc_list.append(doc)
-        if doc_list:
-            initialize_semantic_embeddings(doc_list)
+        # 2. Embeddings und Chunks laden, falls vorhanden
+        if os.path.exists(embeddings_path) and os.path.exists(chunks_path):
+            semantic_embeddings = np.load(embeddings_path)
+            with open(chunks_path, "r", encoding="utf-8") as f:
+                semantic_doc_chunks = json.load(f)
+        else:
+            # Dokumente laden und Embeddings neu berechnen
+            doc_list = []
+            doc_files = glob.glob(os.path.join(DOCUMENTS_DIR, "*.md"))
+            for filepath in doc_files:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    content = f.read()
+                    content = clean_pipeline(content)
+                    filename = os.path.basename(filepath)
+                    base_docno = os.path.splitext(filename)[0]
+                    chunks = split_text_into_chunks(content, MAX_WORDS_PER_CHUNK, int(MAX_WORDS_PER_CHUNK / 2))
+                    for idx, chunk in enumerate(chunks):
+                        doc = {
+                            "docno": f"{base_docno}_{idx}",
+                            "filename": filename,
+                            "url": "https://" + base_docno.replace("-", "/").replace("fedlex/data/admin/ch/", "www.fedlex.admin.ch/").replace("/html", ""),
+                            "text": chunk
+                        }
+                        doc_list.append(doc)
+            if doc_list:
+                initialize_semantic_embeddings(doc_list)
+                np.save(embeddings_path, semantic_embeddings)
+                with open(chunks_path, "w", encoding="utf-8") as f:
+                    json.dump(semantic_doc_chunks, f, ensure_ascii=False)
     else:
-        print("Index wird neu erstellt, da sich die Anzahl der Markdown-Dateien geändert hat oder kein Index vorhanden ist.")
+        print("Index wird neu erstellt, da kein Index vorhanden ist.")
         initialize_index()
-        write_file_count(current_count)
+        # Das Speichern der Embeddings passiert bereits in initialize_index()
 
     app.run(host='0.0.0.0', port=8001, debug=True)

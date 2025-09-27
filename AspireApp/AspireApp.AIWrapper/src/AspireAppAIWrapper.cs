@@ -18,7 +18,7 @@ public class AspireAppAIWrapper
         }
         _apiKey = apiKey;
         _endpoint = "https://api.swisscom.com/layer/swiss-ai-weeks/apertus-70b/v1/chat/completions";
-        _ragEndpoint = "http://localhost:8001/search/query";
+        _ragEndpoint = "http://localhost:8001/search/semantic_query";
     }
 
 
