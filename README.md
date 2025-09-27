@@ -11,9 +11,16 @@ Can you build an AI-based tool that prevents users from buying products that are
 
 ![use case process](./Doc/order_process_checked.png)
 
-![example usage of the web extension](./Doc/example_usage.png)
+### Examples
 
+#### Gun Shop
+![example gun shop](./Doc/example_usage.png)
 
+#### Book about TNT
+![example book about tnt](./Doc/example_usage_book_tnt.png)
+
+#### Axe on Temu Shop
+![example axe on temu](./Doc/example_usage_temu_axe.png)
 
 ## Important Links
 
