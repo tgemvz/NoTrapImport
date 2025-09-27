@@ -56,7 +56,8 @@ function ResultView() {
       return div({ class: result.val.isLegal ? "legal" : "illegal" },
         h6(`Product is ${result.val.isLegal ? "legal" : "illegal"}`),
         p(result.val.legalExplanation),
-        result.val.linkToLegalDocuments ? a({ href: result.val.linkToLegalDocuments, target: "_blank" }, "Link to legal documents") : ""
+        result.val.linkToLegalDocuments ? [...new Set(result.val.linkToLegalDocuments)]
+          .map((href, idx) => p(a({ href: href, target: "_blank" }, "Link to legal document " +  (idx + 1)))) : ""
       );
     } else {
       return div(p(JSON.stringify(result.val)));
