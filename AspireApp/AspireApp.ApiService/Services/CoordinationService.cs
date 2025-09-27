@@ -71,8 +71,29 @@ public class CoordinationService(WebContentFetcher webContentFetcher, AspireAppA
 
         var rating = await aiWrapper.GetProductClassificationAsync(pcr, cancellationToken);
 
-        // TODO: return actual rating to API / consumer
+        // Comment out this block if you want full response
+        if (rating.LegalExplanation != null)
+        {
+            rating.LegalExplanation = SanitizeLegalityResponse(rating.LegalExplanation);
+        }
+        
         return rating;
+    }
+    
+    private static string SanitizeLegalityResponse(string originalString)
+    {
+        var markers = new List<string> { "Here is the JSON response", "json {", "```" };
+        foreach (var marker in markers)
+        {
+            var index = originalString.IndexOf(marker, StringComparison.InvariantCulture);
+            if (index != -1)
+            {
+                var lengthToKeep = index + marker.Length;
+                originalString = originalString[..lengthToKeep];
+            }
+        }
+        
+        return originalString;
     }
 
     private string ExtractBodyContent(string fullHtmlContent)
