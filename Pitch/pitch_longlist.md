@@ -37,7 +37,7 @@ img[alt~="center"] {
 
 ---
 
-# TODO: Webextension Screenshot
+![h:500 center](../Doc/example_usage.png)
 
 --- 
 
@@ -78,8 +78,7 @@ section{
 
 ---
 
-<!-- fit -->
-![h:400](Copilot_20250926_181137.png) ![h:400](sequence.drawio.svg)
+![h:500 center](../Doc/order_process_checked.png)
 
 <center>
 
