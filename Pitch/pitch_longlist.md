@@ -37,7 +37,7 @@ img[alt~="center"] {
 
 ---
 
-# TODO: Webextension Screenshot
+![h:500 center](../Doc/example_usage.png)
 
 --- 
 
