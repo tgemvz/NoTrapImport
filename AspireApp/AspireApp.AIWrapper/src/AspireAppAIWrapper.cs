@@ -45,8 +45,9 @@ To determine if a product may be legally imported into Switerzland use following
 {{string.Join("--------", legalContextInfo.Select(c => "Source: " + c.Item1 + " Text: " + c.Item2))}}
 --------
 Do not make up any legal context.
+The field ProductLegality within the range [0, 1} defines the confidentiality with 0 meaning for sure illegal and 1 means for sure legal.
 If the legal context does not provide sufficient information to determine the legality of the product,
-respond with a value within the range [0, 1} and explain that in LegalExplanation.
+respond with a value within the range [0, 1} for ProductLegality and explain that in LegalExplanation.
 Give the urls of the relevant context in the field LinkToLegalDocuments
 When ProductLegality is above or equal 0.5 the product is considered legal, otherwise illegal
 """;
