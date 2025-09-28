@@ -8,3 +8,11 @@ body {
 .hidden {
   visibility: hidden;
 }
+
+.legal h6 {
+    color: lightgreen !important;
+}
+
+.illegal h6 {
+    color: lightcoral !important;
+}

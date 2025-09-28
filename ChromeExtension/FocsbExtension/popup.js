@@ -30,7 +30,20 @@ async function classifyProduct(html, url) {
 async function handleClassification(html, url) {
   setLoading(true)
   const classification = await classifyProduct(html);
-  document.getElementById("result").innerText = JSON.stringify(classification)
+
+  if (classification.isLegal !== undefined) {
+    const result = document.getElementById("result")
+    result.className = result.isLegal ? "legal" : "illegal"
+    result.innerHTML = `
+      <h6>Product is ${classification.isLegal ? "legal" : "illegal"}</h6>
+      <p>
+        ${classification.legalExplanation}
+      </p>
+      ${classification.linkToLegalDocuments ? `<a href="${classification.linkToLegalDocuments}" target="_blank">Link to legal documents</a>` : ""}
+      `
+  } else {
+    document.getElementById("result").innerText = JSON.stringify(classification)
+  }
   setLoading(false)
 }
 
@@ -40,6 +53,7 @@ function setLoading(set) {
   if (set) {
     htmlElement.classList.remove('hidden');
     button.disabled = true;
+    result.innerHTML = "";
   } else {
     htmlElement.classList.add('hidden');
     button.disabled = false;
