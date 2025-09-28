@@ -33,16 +33,18 @@ Do not make up additional JSON properties
 """;
         return prompt;
     }
-    public static string GetPromptForClassification(string legalContextInfo)
+    public static string GetPromptForClassification(Tuple<string, string>[] legalContextInfo)
     {
         var prompt =
 $$"""
-To determine if a product may be legally imported into Switerzland use following legal context:
-{{legalContextInfo}}
+To determine if a product may be legally imported into Switerzland use following legal context(s):
+{{string.Join("--------", legalContextInfo.Select(c => "Source: " + c.Item1 + " Text: " + c.Item2))}}
+--------
 Do not make up any legal context.
 If the legal context does not provide sufficient information to determine the legality of the product,
 respond with a value within the range [0, 1} and explain that in LegalExplanation.
 When ProductLegality is above 0.5 the product is considered legal, otherwise illegal
+Give the urls of the relevant context in the field LinkToLegalDocuments
 """;
         return prompt;
     }
@@ -63,10 +65,9 @@ When ProductLegality is above 0.5 the product is considered legal, otherwise ill
     {
         var requestDesc = request.ProductDescription ?? "";
 
-        var relevantLegalContext = await GetRagResult<RagResult>(requestDesc); // use product description as query for RAG
+        var relevantLegalContext = await GetRagResult<RagResult[]>(requestDesc); // use product description as query for RAG
 
-        var legalContextInfo = relevantLegalContext.Text;
-        var urltoLegalDocs = relevantLegalContext.Url != null ? relevantLegalContext.Url : "N/A";
+        var legalContextInfo = relevantLegalContext.Select(c => new Tuple<string, string>(c.Url, c.Text)).ToArray();
 
         var schemaString = GetJsonSchema<ProductClassificationResponse>();
         var systemMessage = "You are a Productclassifier that responds in JSON format only" +
@@ -77,7 +78,6 @@ When ProductLegality is above 0.5 the product is considered legal, otherwise ill
         var result = await GetChatMessageSemiStructuredOutput<ProductClassificationResponse>(requestDesc, systemMessage, cancellationToken);
         result.Id = request.Id;
         result.ProductUrl = request.ProductUrl;
-        result.LinkToLegalDocuments = [urltoLegalDocs];
 
         return result;
     }
@@ -93,7 +93,7 @@ When ProductLegality is above 0.5 the product is considered legal, otherwise ill
         var ragPayload = new
         {
             query = request,
-            top_k = 1
+            k = 3
         };
         var json = JsonSerializer.Serialize(ragPayload);
         ragReq = new HttpRequestMessage(HttpMethod.Post, _ragEndpoint)
@@ -107,9 +107,7 @@ When ProductLegality is above 0.5 the product is considered legal, otherwise ill
 
         if (ragDoc.RootElement.ValueKind == JsonValueKind.Array && ragDoc.RootElement.GetArrayLength() > 0)
         {
-            var firstDoc = ragDoc.RootElement[0];
-
-            var maybe = JsonSerializer.Deserialize<T>(firstDoc, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var maybe = JsonSerializer.Deserialize<T>(ragDoc, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if (maybe != null) return maybe;
         }
 
