@@ -1,8 +1,18 @@
 # Don’t walk straight into the trap (Gov3)
 
-# Open
+# Technical Challenges
+- Apertus
+    - No structured output
+    - No dotnet wrapper (OpenAI Client didn't work)
+- RAG
+    - Chunking: Can't feed whole documents to LLM
+    - Duplicate check on DB initialization
+    - Initialization from scratch: Don't build complete index on document update
+
+## Open
 
 - How to handle multiple products on website
+- Some technical details are only available in images
 
 ## Abstract
 
@@ -23,13 +33,6 @@
 
 #### Limitations
 - No duplicate check on db initialization
-
-## Technical Challenges
-- Apertus
-    - No structured output
-    - No dotnet wrapper (OpenAI Client didn't work)
-- RAG
-    - Chunking: Can't feed whole documents to LLM
 
 ## Future Work
 

@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Web;
+using Microsoft.Extensions.Logging;
 
 public class AspireAppAIWrapper
 {
@@ -9,8 +10,11 @@ public class AspireAppAIWrapper
     private readonly string _endpoint;
     private readonly string _ragEndpoint;
 
-    public AspireAppAIWrapper()
+    ILogger _logger;
+
+    public AspireAppAIWrapper(ILogger logger)
     {
+        _logger = logger;
         var apiKey = Environment.GetEnvironmentVariable("SWISS_AI_PLATFORM_API_KEY");
         if (string.IsNullOrWhiteSpace(apiKey))
         {
@@ -43,8 +47,8 @@ To determine if a product may be legally imported into Switerzland use following
 Do not make up any legal context.
 If the legal context does not provide sufficient information to determine the legality of the product,
 respond with a value within the range [0, 1} and explain that in LegalExplanation.
-When ProductLegality is above 0.5 the product is considered legal, otherwise illegal
 Give the urls of the relevant context in the field LinkToLegalDocuments
+When ProductLegality is above or equal 0.5 the product is considered legal, otherwise illegal
 """;
         return prompt;
     }
@@ -58,6 +62,9 @@ Give the urls of the relevant context in the field LinkToLegalDocuments
 
         var result = await GetChatMessageSemiStructuredOutput<ProductIdentificationResponse>(request.HtmlContent, systemMessage, cancellationToken);
         result.ProductUrl = request.ProductUrl;
+        result.Id = request.Id;
+        result.RequestDate = request.RequestDate;
+        _logger.LogDebug($"Identification result: {JsonSerializer.Serialize(result)}");
         return result;
     }
 
@@ -78,6 +85,8 @@ Give the urls of the relevant context in the field LinkToLegalDocuments
         var result = await GetChatMessageSemiStructuredOutput<ProductClassificationResponse>(requestDesc, systemMessage, cancellationToken);
         result.Id = request.Id;
         result.ProductUrl = request.ProductUrl;
+
+        _logger.LogDebug($"Classification result: {JsonSerializer.Serialize(result)}");
 
         return result;
     }
@@ -108,7 +117,11 @@ Give the urls of the relevant context in the field LinkToLegalDocuments
         if (ragDoc.RootElement.ValueKind == JsonValueKind.Array && ragDoc.RootElement.GetArrayLength() > 0)
         {
             var maybe = JsonSerializer.Deserialize<T>(ragDoc, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            if (maybe != null) return maybe;
+            if (maybe != null)
+            {
+                _logger.LogDebug($"RAG result: {JsonSerializer.Serialize(maybe)}");
+                return maybe;
+            }
         }
 
         throw new InvalidOperationException($"Failed to convert LLM response to {typeof(T).Name}. Response: {ragRespJson}");
@@ -148,6 +161,7 @@ Give the urls of the relevant context in the field LinkToLegalDocuments
         resp.EnsureSuccessStatusCode();
 
         var respJson = await resp.Content.ReadAsStringAsync();
+        _logger.LogDebug($"LLM raw response in GetChatMessageSemiStructuredOutput: {respJson}");
         using var doc = JsonDocument.Parse(respJson);
 
         // Try common shapes: choices[0].message.content (OpenAI chat-completions) or choices[0].text / content[0].text
@@ -167,7 +181,7 @@ Give the urls of the relevant context in the field LinkToLegalDocuments
         }
 
         var payloadStr = result ?? respJson;
-
+        _logger.LogDebug($"LLM extracted payload in GetChatMessageSemiStructuredOutput: {payloadStr}");
         // Attempt to deserialize the payload into the requested class T.
         var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
@@ -175,7 +189,11 @@ Give the urls of the relevant context in the field LinkToLegalDocuments
         try
         {
             var direct = JsonSerializer.Deserialize<T>(payloadStr, options);
-            if (direct != null) return direct;
+            if (direct != null)
+            {
+                _logger.LogDebug($"LLM direct deserialization successful in GetChatMessageSemiStructuredOutput: {JsonSerializer.Serialize(direct)}");
+                return direct;
+            }
         }
         catch (JsonException)
         {
@@ -193,6 +211,7 @@ Give the urls of the relevant context in the field LinkToLegalDocuments
                 var extracted = JsonSerializer.Deserialize<T>(jsonOnly, options);
                 if (extracted != null)
                 {
+                    _logger.LogDebug($"LLM extracted deserialization successful in GetChatMessageSemiStructuredOutput: {JsonSerializer.Serialize(extracted)}");
                     return extracted;
                 }
             }
@@ -207,11 +226,13 @@ Give the urls of the relevant context in the field LinkToLegalDocuments
             case nameof(ProductIdentificationResponse):
                 var res1 = Activator.CreateInstance<T>();
                 (res1 as ProductIdentificationResponse)!.ProductDescription = payloadStr;
+                _logger.LogDebug($"LLM fallback deserialization successful in GetChatMessageSemiStructuredOutput: {JsonSerializer.Serialize(res1)}");
                 return res1;
 
             case nameof(ProductClassificationResponse):
                 var res2 = Activator.CreateInstance<T>();
                 (res2 as ProductClassificationResponse)!.LegalExplanation = payloadStr;
+                _logger.LogDebug($"LLM fallback deserialization successful in GetChatMessageSemiStructuredOutput: {JsonSerializer.Serialize(res2)}");
                 return res2;
 
             default:

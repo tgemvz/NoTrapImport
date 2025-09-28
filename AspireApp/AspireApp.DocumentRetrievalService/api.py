@@ -21,7 +21,6 @@ nltk.download("stopwords")
 nltk.download('wordnet')
 nltk.download('omw-1.4')
 
-# Ensure required NLTK resources are available
 def safe_nltk_download(resource):
     try:
         nltk.data.find(resource)
@@ -56,8 +55,6 @@ MAX_WORDS_PER_CHUNK = 300
 
 # Globals
 retriever = None
-
-# Semantische Suche: Modell und Embeddings
 SEMANTIC_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
 semantic_model = SentenceTransformer(SEMANTIC_MODEL_NAME)
 semantic_embeddings = None
@@ -85,30 +82,26 @@ def clean_pipeline(text):
         except OSError:
             continue  # skip if stopwords not available for that language
 
-    # Apply stemming using SnowballStemmer
     stemmed_words = []
     for lang in languages:
         try:
             stemmer = SnowballStemmer(lang)
             stemmed_words = [stemmer.stem(w) for w in words]
-            break  # Use first matching language (you might customize this)
+            break
         except ValueError:
             continue  # language not supported by SnowballStemmer
 
-    # Apply lemmatization (English only by default)
     lemmatizer = WordNetLemmatizer()
     lemmatized_words = [lemmatizer.lemmatize(w) for w in stemmed_words]
 
     return lemmatized_words
 
 def filename_to_url(filename: str) -> str:
-    # Step 1: Remove the fixed prefix
     prefix = "fedlex-data-admin-ch-eli-cc-"
     if not filename.startswith(prefix):
         raise ValueError("Filename does not start with expected prefix.")
     trimmed = filename[len(prefix):]
 
-    # Step 2: Split at '-' to extract year and id
     parts = trimmed.split('-')
     if len(parts) < 4:
         raise ValueError("Filename does not contain enough parts.")
@@ -120,7 +113,6 @@ def filename_to_url(filename: str) -> str:
     html_index = parts.index("html")
     lang = parts[html_index - 1]
 
-    # Step 4: Construct and return the URL
     return f"https://www.fedlex.admin.ch/eli/cc/{year}/{id_}/{lang}"
 
 def initialize_index():
@@ -132,7 +124,6 @@ def initialize_index():
         print(f"Documents directory '{DOCUMENTS_DIR}' does not exist.")
         return
 
-    # Get all .md files
     doc_files = glob.glob(os.path.join(DOCUMENTS_DIR, "*.md"))
     print(f"Found {len(doc_files)} markdown files.")
 
@@ -143,7 +134,6 @@ def initialize_index():
             filename = os.path.basename(filepath)
             base_docno = os.path.splitext(filename)[0]
 
-            # Split content into chunks
             chunks = split_text_into_chunks(content, MAX_WORDS_PER_CHUNK, int(MAX_WORDS_PER_CHUNK / 2))
             for idx, chunk in enumerate(chunks):
                 doc = {
@@ -172,12 +162,10 @@ def initialize_index():
     retriever = pt.terrier.Retriever(index_ref)
     retriever.controls["wmodel"] = "BM25"
     retriever.metadata = ["docno", "filename", "url", "text"]
-    print("Indexing completed.")
+    print("BM25-Indexing completed.")
 
-    # Semantische Suche: Embeddings initialisieren
     initialize_semantic_embeddings(doc_list)
 
-    # Nach dem Erstellen:
     np.save("/app/data/semantic_embeddings.npy", semantic_embeddings)
     with open("/app/data/semantic_doc_chunks.json", "w", encoding="utf-8") as f:
         json.dump(semantic_doc_chunks, f, ensure_ascii=False)
@@ -190,7 +178,8 @@ def initialize_semantic_embeddings(doc_list):
 
 def sanitize_query(query):
     return re.sub(r'[()\[\]{}^~*?:\"\\]', '', query)
-    
+
+# Old/Obsolete query with BM25    
 @ns.route('/query')
 class QueryDocuments(Resource):
     @ns.expect(query_model)
@@ -275,25 +264,21 @@ def semantic_search(query, k=5):
     return results
 
 if __name__ == "__main__":
-    # 1. Prüfe, ob Embeddings und Chunks existieren
     embeddings_path = "/app/data/semantic_embeddings.npy"
     chunks_path = "/app/data/semantic_doc_chunks.json"
 
     if os.path.exists(INDEX_PATH) and os.path.exists(os.path.join(INDEX_PATH, "data.properties")):
-        # Index laden
         index_ref = pt.IndexRef.of(INDEX_PATH)
         retriever = pt.terrier.Retriever(index_ref)
         retriever.controls["wmodel"] = "BM25"
         retriever.metadata = ["docno", "filename", "url", "text"]
         print("Index loaded from disk.")
 
-        # 2. Embeddings und Chunks laden, falls vorhanden
         if os.path.exists(embeddings_path) and os.path.exists(chunks_path):
             semantic_embeddings = np.load(embeddings_path)
             with open(chunks_path, "r", encoding="utf-8") as f:
                 semantic_doc_chunks = json.load(f)
         else:
-            # Dokumente laden und Embeddings neu berechnen
             doc_list = []
             doc_files = glob.glob(os.path.join(DOCUMENTS_DIR, "*.md"))
             for filepath in doc_files:
@@ -317,8 +302,7 @@ if __name__ == "__main__":
                 with open(chunks_path, "w", encoding="utf-8") as f:
                     json.dump(semantic_doc_chunks, f, ensure_ascii=False)
     else:
-        print("Index wird neu erstellt, da kein Index vorhanden ist.")
+        print("BM25 Index wird neu erstellt, da kein Index vorhanden ist.")
         initialize_index()
-        # Das Speichern der Embeddings passiert bereits in initialize_index()
 
     app.run(host='0.0.0.0', port=8001, debug=True)
