@@ -8,6 +8,7 @@ RUN pip install nltk spacy
 RUN pip install sentence-transformers scikit-learn
 RUN python -m nltk.downloader stopwords punkt
 RUN python -m spacy download en_core_web_sm
+RUN python3 -c "import pyterrier as pt; pt.init()"
 
 WORKDIR /app
 
