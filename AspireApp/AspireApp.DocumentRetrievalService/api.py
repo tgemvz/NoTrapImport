@@ -37,12 +37,14 @@ MAX_WORDS_PER_CHUNK = 300
 # Globals
 retriever = None
 
-def split_text_into_chunks(words, max_words):
-    """Splits text into chunks of at most max_words words."""
+def split_text_into_chunks(words, max_words, overlap_words):
+    """Splits text into chunks of at most max_words words with overlap."""
     chunks = []
-    for i in range(0, len(words), max_words):
+    i = 0
+    while i < len(words):
         chunk = " ".join(words[i:i+max_words])
         chunks.append(chunk)
+        i += max_words - overlap_words
     return chunks
 
 def clean_pipeline(text):
@@ -74,9 +76,9 @@ def initialize_index():
             base_docno = os.path.splitext(filename)[0]
 
             # Split content into chunks
-            chunks = split_text_into_chunks(content, MAX_WORDS_PER_CHUNK)
-
+            chunks = split_text_into_chunks(content, MAX_WORDS_PER_CHUNK, int(MAX_WORDS_PER_CHUNK / 2))
             for idx, chunk in enumerate(chunks):
+                print(chunk)
                 doc = {
                     "docno": f"{base_docno}_{idx}",
                     "filename": filename,
