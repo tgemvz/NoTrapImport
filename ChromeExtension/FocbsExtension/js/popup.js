@@ -11,7 +11,10 @@ async function classifyProduct(html, url) {
   try {
     const response = await fetch(fullRequestUrl, {
       method: "POST",
-      body: JSON.stringify({ html: html }),
+      body: JSON.stringify({ 
+        html: html,
+        url: url 
+      }),
       headers: {
         "Content-Type": "application/json",
       }
