@@ -15,6 +15,8 @@ import nltk
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+import shutil
+
 
 nltk.download("stopwords")
 nltk.download('wordnet')
@@ -130,6 +132,10 @@ def initialize_index():
 
     os.makedirs(INDEX_PATH, exist_ok=True)
     df = pd.DataFrame(doc_list)
+
+    if os.path.exists(INDEX_PATH):
+        print(f"Index already exists at {INDEX_PATH}. Deleting the existing index.")
+        shutil.rmtree(INDEX_PATH)
 
     indexer = pt.IterDictIndexer(INDEX_PATH, meta={'docno' : 200, 'filename': 200, 'url': 200, 'text': 30000}, fields=['text'])
     index_ref = indexer.index(df.to_dict(orient='records'))
