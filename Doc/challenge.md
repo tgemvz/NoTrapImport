@@ -49,3 +49,6 @@ In the short timeframe, not every idea and process was realistic to be realised.
 ### Visual Data Extraction
 Currently the check will be accomplished by extracting text data. Further improvements could be achieved by also evaluating visual data like images or video.
 This could be incorporated by providing a "Full Scan" option to the user, which will take longer, but will consider more data thus being more precise.
+
+### Shop Specific Extraction
+- Shops have a lot of noice next to the main product. This can degrade AI performance. Here, specific "Shop Adapters" could sanitize the input even more.
