@@ -1,10 +1,23 @@
-﻿namespace AspireApp.AiWrapperTest;
+﻿using Microsoft.Extensions.Logging;
+
+namespace AspireApp.AiWrapperTest;
 
 [TestClass]
 public sealed class AIWrapperTest
 {
 
     const string LEGAL_CONTEXT_INFO = "Schusswaffen sind verboten, Messer sind erlaubt. Spielzeugwaffen sind bedingt erlaubt";
+    private readonly ILogger<AIWrapperTest> _logger;
+
+    public AIWrapperTest()
+    {
+        var factory = LoggerFactory.Create(builder =>
+        {
+            builder.AddDebug();
+            builder.AddConsole();
+        });
+        _logger = factory.CreateLogger<AIWrapperTest>();
+    }
 
     static bool AssertAPIKeyIsSet()
     {
@@ -25,7 +38,7 @@ public sealed class AIWrapperTest
         if (!AssertAPIKeyIsSet()) { return; }
 
         // Create instance (class is in global namespace)
-        var wrapper = new AspireAppAIWrapper();
+        var wrapper = new AspireAppAIWrapper(_logger);
 
         string result;
         try
@@ -47,7 +60,7 @@ public sealed class AIWrapperTest
         if (!AssertAPIKeyIsSet()) { return; }
 
         // Create instance (class is in global namespace)
-        var wrapper = new AspireAppAIWrapper();
+        var wrapper = new AspireAppAIWrapper(_logger);
 
         ProductIdentificationResponse? result = null;
         try
@@ -75,7 +88,7 @@ public sealed class AIWrapperTest
         if (!AssertAPIKeyIsSet()) { return; }
 
         // Create instance (class is in global namespace)
-        var wrapper = new AspireAppAIWrapper();
+        var wrapper = new AspireAppAIWrapper(_logger);
 
         ProductClassificationBase? result = null;
         try
@@ -103,7 +116,7 @@ public sealed class AIWrapperTest
         if (!AssertAPIKeyIsSet()) { return; }
 
         // Create instance (class is in global namespace)
-        var wrapper = new AspireAppAIWrapper();
+        var wrapper = new AspireAppAIWrapper(_logger);
 
         ProductClassificationResponse? result = null;
         try
@@ -135,7 +148,7 @@ public sealed class AIWrapperTest
         if (!AssertAPIKeyIsSet()) { return; }
 
         // Create instance (class is in global namespace)
-        var wrapper = new AspireAppAIWrapper();
+        var wrapper = new AspireAppAIWrapper(_logger);
 
         ProductClassificationResponse? result = null;
         try
@@ -167,7 +180,7 @@ public sealed class AIWrapperTest
         if (!AssertAPIKeyIsSet()) { return; }
 
         // Create instance (class is in global namespace)
-        var wrapper = new AspireAppAIWrapper();
+        var wrapper = new AspireAppAIWrapper(_logger);
 
         ProductClassificationResponse? result = null;
         try
@@ -200,7 +213,7 @@ public sealed class AIWrapperTest
         if (!AssertAPIKeyIsSet()) { return; }
 
         // Create instance (class is in global namespace)
-        var wrapper = new AspireAppAIWrapper();
+        var wrapper = new AspireAppAIWrapper(_logger);
 
         ProductClassificationResponse? result = null;
         try

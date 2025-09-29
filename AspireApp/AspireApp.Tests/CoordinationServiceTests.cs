@@ -1,5 +1,6 @@
 ﻿using AspireApp.ApiService.Services;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace AspireApp.Tests;
@@ -7,6 +8,17 @@ namespace AspireApp.Tests;
 [TestClass]
 public class CoordinationServiceTests
 {
+    private readonly ILogger<CoordinationServiceTests> _logger;
+    public CoordinationServiceTests()
+    {
+        var factory = LoggerFactory.Create(builder =>
+        {
+            builder.AddDebug();
+            builder.AddConsole();
+        });
+        _logger = factory.CreateLogger<CoordinationServiceTests>();
+    }
+
     private static string TestKnife =
         "https://jars-messer.de/products/bombfrog-jars-messer-42a-cpm3v-n690-stahl-taucher-survival-jagd-outdoor-messer-green-black-micarta?variant=41232888922206";
 
@@ -21,7 +33,7 @@ public class CoordinationServiceTests
         var cancellationToken = source.Token;
         var fileContent = await File.ReadAllTextAsync("HtmlFiles/kugelschreiber.txt", cancellationToken);
         var contentFetcherMock = new Mock<WebContentFetcher>();
-        var wrapper = new AspireAppAIWrapper();
+        var wrapper = new AspireAppAIWrapper(_logger);
         contentFetcherMock.Setup(x => x.GetHtmlContentAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(fileContent);
         var coordinationService = new CoordinationService(contentFetcherMock.Object, wrapper);
@@ -37,7 +49,7 @@ public class CoordinationServiceTests
         var source = new CancellationTokenSource();
         var cancellationToken = source.Token;
         var contentFetcher = new WebContentFetcher();
-        var wrapper = new AspireAppAIWrapper();
+        var wrapper = new AspireAppAIWrapper(_logger);
         var coordinationService = new CoordinationService(contentFetcher, wrapper);
 
         var classification = await coordinationService.ClassifyProductByUrl(TestKnife, cancellationToken);
@@ -53,7 +65,7 @@ public class CoordinationServiceTests
         var source = new CancellationTokenSource();
         var cancellationToken = source.Token;
         var contentFetcher = new WebContentFetcher();
-        var wrapper = new AspireAppAIWrapper();
+        var wrapper = new AspireAppAIWrapper(_logger);
         var coordinationService = new CoordinationService(contentFetcher, wrapper);
 
         var classification = await coordinationService.ClassifyProductByUrl(TestPistol, cancellationToken);
